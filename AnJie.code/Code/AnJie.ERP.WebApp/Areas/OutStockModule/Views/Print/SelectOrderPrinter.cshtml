@@ -1,0 +1,68 @@
+﻿@{
+    ViewBag.Title = "选择发货单打印机";
+    Layout = "~/Views/Shared/_LayoutForm.cshtml";
+}
+
+@section head
+{
+    <script src="~/Content/Scripts/LodopFuncs.js"></script>
+}
+
+<script type="text/javascript">
+    var aryOrderNos = GetQuery('orderNos');
+    var shipTypeId = GetQuery('shipTypeId');
+    $(function () {
+        CreatePrinterList();
+        BindOrderPrintTemplate();
+    });
+
+    var LODOP; //声明为全局变量
+    function CreatePrinterList() {
+        LODOP = getLodop();
+        $("#PrinterList").html("");
+        var iPrinterCount = LODOP.GET_PRINTER_COUNT();
+        for (var i = 0; i < iPrinterCount; i++) {
+            $("#PrinterList").append($("<option></option>").val(i).html(LODOP.GET_PRINTER_NAME(i)));
+        };
+    };
+
+    //分类下拉框
+    function BindOrderPrintTemplate() {
+        $("#OrderPrintTemplate").html("");
+        AjaxJson("/OutStockModule/Print/ListOrderPrintTemplate", {  }, function (dataJson) {
+            $.each(dataJson, function (i) {
+                $("#OrderPrintTemplate").append($("<option></option>").val(dataJson[i].TemplateId).html(dataJson[i].TemplateName));
+            });
+        });
+    }
+
+    //保存事件
+    function AcceptClick() {
+        if (!CheckDataValid('#form1')) {
+            return false;
+        }
+        var templateId = $("#OrderPrintTemplate").val();
+        var printIndex = $("#PrinterList").val();
+        top.frames[tabiframeId()].PrintShipmentBill(aryOrderNos, templateId, printIndex);
+        closeDialog();
+        return true;
+    }
+</script>
+<form id="form1" style="margin: 15px; margin-left: 20px; margin-right: 20px;">
+    <div>
+        <table border="0" class="form-find" style="width: 100%;">
+            <tr>
+                <th style="width: 30%;">选择打印机：</th>
+                <td style="width: 70%;">
+                    <select id="PrinterList" class="txtselect" datacol="yes" err="打印机" checkexpession="NotNull" style="width: 95%"></select>
+                </td>
+            </tr>
+            <tr>
+                <th>选择发货单模板：</th>
+                <td>
+                    <select id="OrderPrintTemplate" class="txtselect" datacol="yes" err="打印模板" checkexpession="NotNull" style="width: 95%"></select>
+                </td>
+            </tr>
+        </table>
+    </div>
+</form>

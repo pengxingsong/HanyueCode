@@ -1,0 +1,220 @@
+﻿@{
+    ViewBag.Title = "储位管理 》储位表单";
+    Layout = "~/Views/Shared/_LayoutForm.cshtml";
+}
+<script type="text/javascript">
+    $(function () {
+        InitControl();
+    })
+    
+    //库区下拉框
+    function BindZone(WarehouseId) {
+        $("#ZoneId").html("");
+        $("#ZoneId").append("<option value=''>--请选择--</option>");
+        AjaxJson("/BaseModule/WarehouseZone/ListJson",
+            { warehouseId: WarehouseId },
+            function (dataJson) {
+                $.each(dataJson,
+                    function (i) {
+                        $("#ZoneId")
+                            .append($("<option></option>").val(dataJson[i].zoneid).html(dataJson[i].zonecode + "-" + dataJson[i].zonename));
+                    });
+            });
+    }
+
+    //得到一个对象实体
+    function InitControl() {
+        if (!!GetQuery('KeyValue')) {
+            AjaxJson("/BaseModule/WarehouseLocation/SetForm", { KeyValue: GetQuery('KeyValue') }, function (data) {
+                BindZone(data.WarehouseId);
+                SetWebControls(data);
+            });
+        } else {
+            $("#WarehouseId").val(GetQuery('WarehouseId'));
+            BindZone(WarehouseId);
+        }
+    }
+
+    //保存事件
+    function AcceptClick() {
+        if (!CheckDataValid('#form1')) {
+            return false;
+        }
+        Loading(true, "正在提交数据...");
+        window.setTimeout(function () {
+            var postData = GetWebControls("#form1");
+            AjaxJson("/BaseModule/WarehouseLocation/SubmitForm?KeyValue=" + GetQuery('KeyValue'), postData, function (data) {
+                tipDialog(data.Message, 3, data.Code);
+                top.frames[tabiframeId()].windowload();
+                closeDialog();
+            });
+        }, 200);
+    }
+</script>
+<form id="form1" style="margin: 1px">
+    <div id="message" style="display: none"></div>
+    <table class="form">
+        <tr>
+            <th class="formTitle">库区：</th>
+            <td class="formValue">
+                <select id="ZoneId" class="txtselect" datacol="yes" err="库区" checkexpession="NotNull"></select>
+            </td>
+            <th class="formTitle">
+                储位编码：
+            </th>
+            <td class="formValue">
+                <input id="WarehouseId" type="hidden" />
+                <input id="Code" type="text" class="txt required" datacol="yes" err="储位编码" checkexpession="NotNull" />
+            </td>     
+        </tr>
+        <tr>
+            <th class="formTitle">
+                作业区域：
+            </th>
+            <td class="formValue">
+                <input id="AreaCode" maxlength=16 type="text" class="txt" />
+            </td>
+            <th class='formTitle'>上架区域：</th>
+            <td class='formValue'>
+                <input id="PutZone" maxlength=16 type="text" class="txt" />
+            </td>
+        </tr>
+        <tr>
+            <th class='formTitle'>配货区域：</th>
+            <td class='formValue'>
+                <input id="AllocZone" maxlength=16 type="text" class="txt" />
+            </td>
+            <th class='formTitle'>盘点区域：</th>
+            <td class='formValue'>
+                <input id="CCZone" maxlength=16 type="text" class="txt" />
+            </td>
+        </tr>
+        <tr>
+            <th class='formTitle'>是否贵重品：</th>
+            <td class='formValue'>
+                <input id="HighValue" maxlength=10 type="text" class="txt" />
+            </td>
+
+            <th class='formTitle'>最后盘点日期：</th>
+            <td class='formValue'>
+                <input id="LastCCDate" maxlength=23 type="text" class="txt" />
+            </td>
+        </tr>
+        <tr>
+            <th class='formTitle'>巷道：</th>
+            <td class='formValue'>
+                <input id="Alsle" maxlength=64 type="text" class="txt" />
+            </td>
+ 
+            <th class='formTitle'>列：</th>
+            <td class='formValue'>
+                <input id="Bay" maxlength=16 type="text" class="txt" />
+            </td>
+        </tr>
+        <tr>
+            <th class='formTitle'>层：</th>
+            <td class='formValue'>
+                <input id="Floor" maxlength=16 type="text" class="txt" />
+            </td>
+
+            <th class='formTitle'>长：</th>
+            <td class='formValue'>
+                <input id="Length" maxlength=9 type="text" class="txt" />
+            </td>
+        </tr>
+        <tr>
+            <th class='formTitle'>宽：</th>
+            <td class='formValue'>
+                <input id="Width" maxlength=9 type="text" class="txt" />
+            </td>
+
+            <th class='formTitle'>高：</th>
+            <td class='formValue'>
+                <input id="Height" maxlength=9 type="text" class="txt" />
+            </td>
+        </tr>
+        <tr>
+            <th class='formTitle'>体积：</th>
+            <td class='formValue'>
+                <input id="Cube" maxlength=9 type="text" class="txt" />
+            </td>
+   
+            <th class='formTitle'>承重：</th>
+            <td class='formValue'>
+                <input id="Weight" maxlength=9 type="text" class="txt" />
+            </td>
+        </tr>
+        <tr>
+            <th class='formTitle'>拣货顺序：</th>
+            <td class='formValue'>
+                <input id="PickingSEQ" maxlength=64 type="text" class="txt" />
+            </td>
+  
+            <th class='formTitle'>盘点顺序：</th>
+            <td class='formValue'>
+                <input id="CycleCountSEQ" maxlength=64 type="text" class="txt" />
+            </td>
+        </tr>
+        <tr>
+            <th class='formTitle'>上架顺序：</th>
+            <td class='formValue'>
+                <input id="PutAwaySEQ" maxlength=64 type="text" class="txt" />
+            </td>
+     
+            <th class='formTitle'>库位形式：</th>
+            <td class='formValue'>
+                <input id="LocationClass" maxlength=32 type="text" class="txt" />
+            </td>
+        </tr>
+        <tr>
+            <th class='formTitle'>库位类型：</th>
+            <td class='formValue'>
+                <input id="LocationType" maxlength=10 type="text" class="txt" />
+            </td>
+    
+            <th class='formTitle'>流动等级(ABC)：</th>
+            <td class='formValue'>
+                <input id="MovementType" maxlength=10 type="text" class="txt" />
+            </td>
+        </tr>
+        <tr>
+            <th class='formTitle'>混放商品：</th>
+            <td class='formValue'>
+                <input id="CommingleSKU" maxlength=10 type="text" class="txt" />
+            </td>
+      
+            <th class='formTitle'>混放批号：</th>
+            <td class='formValue'>
+                <input id="CommingleLOT" maxlength=10 type="text" class="txt" />
+            </td>
+        </tr>
+        <tr>
+            <th class='formTitle'>是否释放LPN：</th>
+            <td class='formValue'>
+                <input id="IsLostLPN" maxlength=10 type="text" class="txt" />
+            </td>
+     
+            <th class='formTitle'>是否容积校验：</th>
+            <td class='formValue'>
+                <input id="IsCheckCapacity" maxlength=1 type="text" class="txt" />
+            </td>
+        </tr>
+
+        <tr>
+            <th class="formTitle">选项：</th>
+            <td class="formValue" colspan="3">
+                <span class="item">
+                    <input type="checkbox" name="checkbox" checked="checked" id="IsEnable" />
+                    <label for="IsEnable">是否启用</label>
+                </span>
+            </td>
+        </tr>
+        <tr>
+            <th class="formTitle">备注：
+            </th>
+            <td class="formValue" colspan="3">
+                <textarea id="Comments" name="Comments" maxlength="200" class="txtArea" rows="6"></textarea>
+            </td>
+        </tr>
+    </table>
+</form>

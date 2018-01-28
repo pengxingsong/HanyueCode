@@ -1,0 +1,101 @@
+﻿@{
+    ViewBag.Title = "商户管理";
+    Layout = "~/Views/Shared/_LayoutIndex.cshtml";
+}
+<script src="~/Content/Scripts/jqgrid/grid.treegrid.js"></script>
+<script type="text/javascript">
+    $(document).ready(function () {
+        GetGrid();
+    });
+    //加载表格
+    function GetGrid() {
+        $("#gridTable").jqGrid({
+            url: "@Url.Content("~/MerchantModule/Merchant/GridListJson")",
+            datatype: "json",
+            height: $(window).height() - 105,
+            autowidth: true,
+            colModel: [
+            { label: '主键', name: 'MerchantId', index: 'MerchantId', width: 80, hidden: true },
+            { label: "名称", name: "FullName", index: "FullName", width: 200 },
+            { label: "编码", name: "Code", index: "Code", width: 100 },
+            { label: "简称", name: "ShortName", index: "ShortName", width: 100 },
+            { label: "分类", name: "Category", index: "Category", width: 50, align: "center" },
+            { label: "联系人", name: "Contact", index: "Contact", width: 100 },
+            { label: "电话", name: "Phone", index: "Phone", width: 100 },
+            { label: "传真", name: "Fax", index: "Fax", width: 100 },
+            {
+                label: '有效', name: 'Enabled', index: 'Enabled', width: 45, align: 'center',
+                formatter: function (cellvalue, options, rowObject) {
+                    if (cellvalue === 1) return "<img src='../../Content/Images/checkokmark.gif'/>";
+                    if (cellvalue === 0) return "<img src='../../Content/Images/checknomark.gif'/>";
+                    return cellvalue;
+                }
+            },
+            { label: '描述', name: 'Remark', index: 'Remark', width: 500 }
+            ],
+            pager: "false",
+            rowNum: 1000,
+            rownumbers: true,
+            shrinkToFit: false,
+            gridview: true
+        });
+        columnModelData("#gridTable");
+    }
+
+    //新增
+    function btn_add() {
+        var merchantId = GetJqGridRowValue("#gridTable", "MerchantId");
+        if (!merchantId) {
+            merchantId = 0;
+        }
+        var url = "/MerchantModule/Merchant/Form?MerchantId=" + merchantId;
+        openDialog(url, "Form", "新增商户", 650, 380, function (iframe) {
+            top.frames[iframe].AcceptClick()
+        });
+    }
+
+    //编辑
+    function btn_edit() {
+        var keyValue = GetJqGridRowValue("#gridTable", "MerchantId");
+        if (IsChecked(keyValue)) {
+            var url = "/MerchantModule/Merchant/Form?KeyValue=" + keyValue;
+            openDialog(url, "Form", "编辑商户", 650, 380, function (iframe) {
+                top.frames[iframe].AcceptClick();
+            });
+        }
+    }
+
+    //删除
+    function btn_delete() {
+        var keyValue = GetJqGridRowValue("#gridTable", "MerchantId");
+        if (IsSelectData(keyValue)) {
+            var delparm = 'KeyValue=' + keyValue + '&ParentId=' + keyValue;
+            delConfig('/MerchantModule/Merchant/DeleteMerchant', delparm, keyValue.split(",").length);
+        }
+    }
+
+    //商户仓库设置
+    function btn_setMerchantWarehouse() {
+        var merchantId = GetJqGridRowValue("#gridTable", "MerchantId");
+        var fullName = GetJqGridRowValue("#gridTable", "FullName");
+        if (IsChecked(merchantId)) {
+            var url = "/MerchantModule/Merchant/MerchantWarehouse?MerchantId=" + merchantId;
+            openDialog(url, "MerchantWarehouse", "商户仓库 - " + fullName, 625, 350, function (iframe) {
+                top.frames[iframe].AcceptClick();
+            });
+        }
+    }
+
+    //刷新
+    function windowload() {
+        $("#gridTable").trigger("reloadGrid"); //重新载入
+    }
+</script>
+<div class="tools_bar leftline rightline" style="margin-bottom: 0px; margin: 1px;">
+    <div class="PartialButton">
+        @Html.Partial("_PartialButton")
+    </div>
+</div>
+<div class="rightline" style="margin: 1px; margin-top: -1px;">
+    <table id="gridTable"></table>
+</div>

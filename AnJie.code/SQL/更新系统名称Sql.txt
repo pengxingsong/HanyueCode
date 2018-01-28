@@ -1,0 +1,5 @@
+
+
+UPDATE [Base_Module] SET FullName='涵越仓储管理系统' WHERE FullName='安捷ERP系统'
+
+UPDATE Base_Company SET FullName='涵越物流',ShortName='HY' WHERE  CompanyId='1'

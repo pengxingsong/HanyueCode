@@ -1,0 +1,170 @@
+@{
+    ViewBag.Title = "仓库信息》表单页面";
+    Layout = "~/Views/Shared/_LayoutForm.cshtml";
+}
+<script type="text/javascript">
+    var KeyValue = GetQuery('KeyValue');//主键
+    $(function () {
+        BindCombobox();
+        InitControl();
+    });
+
+    //初始化绑定下拉框
+    function BindCombobox() {
+        //所在省
+        $("#ProvinceId").append("<option value=''>--请选择--</option>");
+        $("#CityId").append("<option value=''>--请选择--</option>");
+        $("#CountyId").append("<option value=''>--请选择--</option>");
+        AjaxJson("/Utility/GetProvinceCityListJson", { ParentId: 0 }, function (dataJson) {
+            $.each(dataJson, function (i) {
+                $("#ProvinceId").append($("<option></option>").val(dataJson[i].Code).html(dataJson[i].FullName));
+            });
+        });
+        //所在市
+        $("#ProvinceId").change(function () {
+            BindCityId();
+        });
+        //所在县区
+        $("#CityId").change(function () {
+            BindCountyId();
+        });
+    }
+
+    //所在市下拉框
+    function BindCityId() {
+        $("#CityId").html("");
+        $("#CityId").append("<option value=''>--请选择--</option>");
+        AjaxJson("/Utility/GetProvinceCityListJson", { ParentId: $("#ProvinceId").val() }, function (dataJson) {
+            $.each(dataJson, function (i) {
+                $("#CityId").append($("<option></option>").val(dataJson[i].Code).html(dataJson[i].FullName));
+            });
+        });
+    }
+
+    //所在县区
+    function BindCountyId() {
+        $("#CountyId").html("");
+        $("#CountyId").append("<option value=''>--请选择--</option>");
+        AjaxJson("/Utility/GetProvinceCityListJson", { ParentId: $("#CityId").val() }, function (dataJson) {
+            $.each(dataJson, function (i) {
+                $("#CountyId").append($("<option></option>").val(dataJson[i].Code).html(dataJson[i].FullName));
+            });
+        });
+    }
+    
+    //得到对象实体
+    function InitControl() {
+        if (!!GetQuery('KeyValue')) {
+            AjaxJson("/BaseModule/Warehouse/SetForm", { KeyValue: KeyValue }, function (data) {
+                SetWebControls(data);
+                BindCityId();
+                $("#CityId").val(data.CityId);
+                BindCountyId();
+                $("#CountyId").val(data.CountyId);
+            });
+        } else {
+            //显示顺序
+            AjaxJson("/OrganizationModule/Department/SortCode", {}, function (Data) {
+                $("#SortCode").val(Data);
+            });
+            $("#CompanyId").val(GetQuery('CompanyId'));
+        }
+    }
+
+    //保存事件
+    function AcceptClick() {
+        if (!CheckDataValid('#form1')) {
+            return false;
+        }
+        var postData = GetWebControls("#form1");
+        AjaxJson("/BaseModule/Warehouse/SubmitForm?KeyValue=" + KeyValue, postData, function (data) {
+            tipDialog(data.Message, 3, data.Code);
+            top.frames[tabiframeId()].windowload();
+            closeDialog();
+        });
+    }
+</script>
+<form id="form1" style="margin: 1px">
+    <div id="message" style="display: none"></div>
+    <table class="form">
+        <tr>
+            <th class='formTitle'>仓库编码：</th>
+            <td class='formValue'>
+                <input id="CompanyId" type="hidden" />
+                <input id="WarehouseCode" maxlength=20 type="text" class="txt required" datacol="yes" err="仓库编码" checkexpession="NotNull" />
+            </td>
+            <th class='formTitle'>仓库名称：</th>
+            <td class='formValue'>
+                <input id="WarehouseName" maxlength=50 type="text" class="txt required" datacol="yes" err="仓库名称" checkexpession="NotNull" />
+            </td>
+        </tr>
+        <tr>
+
+            <th class='formTitle'>联系人：</th>
+            <td class='formValue'>
+                <input id="Contact" maxlength=20 type="text" class="txt required" datacol="yes" err="联系人" checkexpession="NotNull" />
+            </td>
+            <th class='formTitle'>联系电话：</th>
+            <td class='formValue'>
+                <input id="Phone" maxlength=50 type="text" class="txt required" datacol="yes" err="联系电话" checkexpession="NotNull" />
+            </td>
+        </tr>
+        <tr>
+            <th class='formTitle'>仓库地址：</th>
+            <td colspan="3" class='formValue'>
+                <input id="Address" maxlength=100 type="text" class="txt required" datacol="yes" err="仓库地址" checkexpession="NotNull" />
+            </td>
+        </tr>
+
+
+        <tr>
+            <th class="formTitle">所在省：</th>
+            <td class="formValue">
+                <select id="ProvinceId" class="txtselect required" datacol="yes" err="所在省" checkexpession="NotNull"></select>
+            </td>
+            <th class="formTitle">所在市：</th>
+            <td class="formValue">
+                <select id="CityId" class="txtselect required" datacol="yes" err="所在市" checkexpession="NotNull"></select>
+            </td>
+        </tr>
+        <tr>
+            <th class="formTitle">所在县区：</th>
+            <td class="formValue">
+                <select id="CountyId" class="txtselect required" datacol="yes" err="所在县区" checkexpession="NotNull"></select>
+            </td>
+            <th class="formTitle">邮编编码：</th>
+            <td class="formValue">
+                <input id="PostalCode" type="text" class="txt" />
+            </td>
+        </tr>
+        <tr>
+            <th class='formTitle'>收货联系人：</th>
+            <td class='formValue'>
+                <input id="ReceiveContact" maxlength=100 type="text" class="txt" />
+            </td>
+            <th class='formTitle'>收货联系人电话：</th>
+            <td class='formValue'>
+                <input id="ReceivePhone" maxlength=100 type="text" class="txt" />
+            </td>
+        </tr>
+        <tr>
+            <th class='formTitle'>收货地址：</th>
+            <td colspan="3" class='formValue'>
+                <input id="ReceiveAddress" maxlength=100 type="text" class="txt"/>
+            </td>
+        </tr>
+        <tr>
+            <th class="formTitle">显示顺序：</th>
+            <td class="formValue">
+                <input id="SortCode" type="text" onkeyup="IsNumber(this.id)" class="txt required" datacol="yes" err="显示顺序" checkexpession="Num" />
+            </td>
+            <th class='formTitle'>状态：</th>
+            <td class='formValue'>
+                <span class="item">
+                    <input type="checkbox" name="checkbox" checked="checked" id="Status" />
+                    <label for="Status">有效</label>
+                </span>
+            </td>
+        </tr>
+    </table>
+</form>

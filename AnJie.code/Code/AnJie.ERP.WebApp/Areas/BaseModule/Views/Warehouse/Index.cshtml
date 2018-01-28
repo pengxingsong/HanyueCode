@@ -1,0 +1,149 @@
+@{
+    ViewBag.Title = "仓库信息";
+    Layout = "~/Views/Shared/_LayoutIndex.cshtml";
+}
+<script type="text/javascript">
+    $(document).ready(function () {
+        GetTree();
+        GetGrid();
+    });
+    var CompanyId, CompanyName = "";
+    //加载左边树
+    function GetTree() {
+        var itemtree = {
+            onnodeclick: function (item) {
+                CompanyId = item.id;            //ID
+                CompanyName = item.text;        //名称
+                $("#CenterTitle").html(" - " + CompanyName);
+                $("#gridTable").jqGrid('setGridParam', { url: "@Url.Content("~/BaseModule/Warehouse/GridListJson")?CompanyId=" + CompanyId }).trigger('reloadGrid');
+            },
+            url: "@Url.Content("~/OrganizationModule/Company/TreeJson")"
+        };
+        $("#ItemsTree").treeview(itemtree);
+    }
+    //加载表格
+    function GetGrid() {
+        $("#gridTable").jqGrid({
+            url: "@Url.Content("~/BaseModule/Warehouse/GridListJson")",
+            datatype: "json",
+            height: $(window).height() - 106,
+            autowidth: true,
+            colModel: [
+                    { label: '主键', name: 'WarehouseId', index: 'WarehouseId', width: 0, hidden: true },
+                    { label: '仓库编号', name: 'WarehouseCode', index: 'WarehouseCode' },
+                    { label: '仓库名称', name: 'WarehouseName', index: 'WarehouseName' },
+                    { label: '联系人', name: 'Contact', index: 'Contact' },
+                    { label: '联系电话', name: 'Phone', index: 'Phone' },
+                    {
+                        label: '状态', name: 'Status', index: 'Status', width: 45, align: 'center',
+                        formatter: function (cellvalue, options, rowObject) {
+                            if (cellvalue == '1') return "<img src='../../Content/Images/checkokmark.gif'/>";
+                            if (cellvalue == '0') return "<img src='../../Content/Images/checknomark.gif'/>";
+                        }
+                    },
+
+                    { label: '收货联系人', name: 'ReceiveContact', index: 'ReceiveContact' },
+                    { label: '收货联系人电话', name: 'ReceivePhone', index: 'ReceivePhone' },
+                    { label: '所在地区', name: 'AreaSysNo', index: 'AreaSysNo' },
+                    {
+                        label: '修改时间', name: 'ModifyDate', index: 'ModifyDate', width: 120, align: 'left',
+                        formatter: function (cellvalue, options, rowObject) {
+                            return formatDate(cellvalue, 'yyyy-MM-dd hh:mm:ss');
+                        }
+                    },
+                    { label: '修改用户', name: 'ModifyUserName', index: 'ModifyUserName' },
+            ],
+            pager: "#gridPager",
+            sortname: '',
+            sortorder: 'desc',
+            rownumbers: true,
+            shrinkToFit: false,
+            gridview: true,
+        });
+    }
+
+    //新增
+    function btn_add() {
+        if (!!CompanyId) {
+            var url = "/BaseModule/Warehouse/Form?CompanyId=" + CompanyId;
+            openDialog(url, "Form", "新增仓库信息", 650, 260, function (iframe) {
+                top.frames[iframe].AcceptClick();
+            });
+        } else {
+            alertDialog("请选择左边公司", 0);
+        }
+    }
+
+    //编辑
+    function btn_edit() {
+        var keyValue = GetJqGridRowValue("#gridTable", "WarehouseId");
+        if (IsChecked(keyValue)) {
+            var url = "/BaseModule/Warehouse/Form?KeyValue=" + keyValue;
+            openDialog(url, "Form", "编辑仓库信息", 650, 260, function (iframe) {
+                top.frames[iframe].AcceptClick();
+            });
+        }
+    }
+
+    //删除
+    function btn_delete() {
+        var keyValue = GetJqGridRowValue("#gridTable", "WarehouseId");
+        if (IsSelectData(keyValue)) {
+            var delparm = 'KeyValue=' + keyValue;
+            delConfig('/BaseModule/Warehouse/Delete', delparm, keyValue.split(",").length);
+        }
+    }
+
+    //明细
+    function btn_detail() {
+        var keyValue = GetJqGridRowValue("#gridTable", "WarehouseId");
+        if (IsChecked(keyValue)) {
+            var url = "/BaseModule/Warehouse/Detail?KeyValue=" + keyValue;
+            Dialog(url, "Detail", "仓库信息明细", 820, 500, function (iframe) {
+                top.frames[iframe].AcceptClick();
+            });
+        }
+    }
+     
+    //修改默认收货储位
+    function btn_SetLocation() {
+        var warehouseId = GetJqGridRowValue("#gridTable", "WarehouseId");
+        if (IsChecked(warehouseId)) {
+            openDialog("@Url.Content("~/BaseModule/Warehouse/SetLocation")?WarehouseId=" + warehouseId, "SetLocation", "修改默认收货储位", 300, 60, function (iframe) {
+                top.frames[iframe].AcceptClick();
+                $("#gridTable").trigger("reloadGrid"); //重新载入
+            });
+        }
+    }
+
+    //刷新
+    function windowload() {
+        $("#gridTable").trigger("reloadGrid"); //重新载入
+
+    }
+</script>
+<div id="layout" class="layout">
+    <!--左边-->
+    <div class="layoutPanel layout-west">
+        <div class="btnbartitle">
+            <div>
+                公司目录
+            </div>
+        </div>
+        <div class="ScrollBar" id="ItemsTree"></div>
+    </div>
+    <!--中间-->
+    <div class="layoutPanel layout-center">
+        <div class="btnbartitle">
+            <div>
+                仓库列表<span id="CenterTitle"></span>
+            </div>
+        </div>
+        <div class="tools_bar" style="border-top: none; margin-bottom: 0px;">
+            <div class="PartialButton">
+                @Html.Partial("_PartialButton")
+            </div>
+        </div>
+        <table id="gridTable"></table>
+    </div>
+</div>

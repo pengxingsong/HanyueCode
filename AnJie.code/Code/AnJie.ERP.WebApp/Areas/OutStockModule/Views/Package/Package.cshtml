@@ -1,0 +1,156 @@
+﻿@{
+    ViewBag.Title = "订单出库 》订单打包";
+    Layout = "~/Views/Shared/_LayoutIndex.cshtml";
+}
+<script type="text/javascript">
+    var hasInit = false;
+    $(function() {
+        var OrderNo = GetQuery('OrderNo');
+        if (OrderNo !== "") {
+            $("#OrderNo").val(OrderNo);
+            $("#PackageNum").focus();
+            LoadGrid(OrderNo);
+        } else {
+            $("#OrderNo").focus();
+        }
+
+        //模糊查询角色（注：这个方法是理由jquery查询）
+        $("#OrderNo").keypress(function(e) {
+            //回车键事件
+            if (e.which === 13) {
+                if ($(this).val() !== "") {
+                    var OrderNo = $(this).val();
+                    if (OrderNo.length > 13) {
+                        window.setTimeout(function() {
+                            LoadGrid(OrderNo);
+                            $("#PackageNum").focus();
+                        }, 100);
+                    }
+                } else {
+                    tipDialog('请输入订单号', 4, 'warning');
+                }
+            }
+        });
+
+        $("#PackageNum").keypress(function(e) {
+            //回车键事件
+            if (e.which === 13) {
+                if ($(this).val() !== "") {
+                    $("#btnPackage").click();
+                } else {
+                    tipDialog('请输入包裹数量', 4, 'warning');
+                }
+            }
+        });
+    });
+
+    //搜索
+    function LoadGrid(OrderNo) {
+        if (hasInit) {
+            $("#gridTable").jqGrid('setGridParam', {
+                url: "@Url.Content("~/OutStockModule/Package/GetOrderItemList")?OrderNo=" + OrderNo,
+                page: 1
+            }).trigger('reloadGrid');
+        } else {
+            var SelectRowIndx;
+            $("#gridTable").jqGrid({
+                url: "@Url.Content("~/OutStockModule/Package/GetOrderItemList")?OrderNo=" + OrderNo,
+                datatype: "json",
+                height: $(window).height() - 125,
+                autowidth: true,
+                colModel: [
+                    { label: '商品主键', name: 'ProductId', hidden: true },
+                    { label: '商品编码', name: "Code", width: 100, sortable: false },
+                    { label: '商品名称', name: "ProductName", width: 250, sortable: false },
+                    { label: '规格型号', name: "Specification", width: 100, sortable: false, align: 'center' },
+                    { label: '条码', name: "BarCode", width: 100, sortable: false, align: 'center' },
+                    { label: '基本单位', name: 'BaseUnit', width: 80, sortable: false, align: 'center' },
+                    { label: '数量', name: "Qty", width: 100, sortable: false, align: 'center' }
+                ],
+                viewrecords: true,
+                rowNum: 30,
+                rowList: [30, 50, 100, 500, 1000],
+                sortname: 'CreateDate',
+                sortorder: 'desc',
+                rownumbers: true,
+                shrinkToFit: false,
+                gridview: true,
+                onSelectRow: function() {
+                    SelectRowIndx = GetJqGridRowIndx("#" + this.id);
+                },
+                gridComplete: function() {
+                    $("#" + this.id).jqGrid('setSelection', SelectRowIndx);
+                }
+            });
+            columnModelData("#gridTable");
+            hasInit = true;
+        }
+    }
+
+    //订单打包
+    function btn_Package() {
+        if (!CheckDataValid('#form1')) {
+            return false;
+        }
+
+        var OrderNo = $("#OrderNo").val();
+        var PackageNum = $("#PackageNum").val();
+        if (OrderNo !== '' && PackageNum !== '') {
+            var delparm = 'orderNo=' + OrderNo + '&packageNum=' + PackageNum;
+            packageConfig('订单打包', '/OutStockModule/Package/SubmitPackage', delparm, PackageNum);
+            return true;
+        } else {
+            tipDialog('请输入订单号和包裹数量', 4, 'warning');
+            return false;
+        }
+    }
+
+    function packageConfig(operation, url, parm, count) {
+        if (count == undefined) {
+            count = 1;
+        }
+        confirmDialog("系统提示", "注：您确定要将该订单打包成 " + count + " 个包裹？", function(r) {
+            if (r) {
+                Loading(true, "正在" + operation + "数据...");
+                window.setTimeout(function() {
+                    AjaxJson(url, parm, function(data) {
+                        tipDialog(data.Message, 3, data.Code);
+                        if (data.Code > 0) {
+
+                        }
+                        $("#OrderNo").focus();
+                        $("#OrderNo").select();
+                    });
+                }, 200);
+            }
+        });
+    }
+
+</script>
+<form id="form1">
+    <div class="note-prompt" style="margin: 1px;">
+        温馨提示：订单号请使用扫描枪扫描，输入完包裹数量后请按回车键提交。
+    </div>
+    <div class="border" style="margin: 1px;">
+        <div class="QueryArea">
+            <table class="form-find" style="height: 45px;">
+                <tr>
+                    <th>订单号：</th>
+                    <td>
+                        <input id="OrderNo" type="text" datacol="yes" class="txt" style="width: 120px" err="订单号" checkexpession="NotNull"/>
+                    </td>
+                    <th>包裹数量：</th>
+                    <td>
+                        <input id="PackageNum" type="text" datacol="yes" class="txt" style="width: 50px" err="包裹数量" checkexpession="Num"/>
+                    </td>
+                    <td>
+                        <input id="btnPackage" type="button" class="btnSearch" value="确认打包" onclick="btn_Package()" />
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </div>
+    <div id="grid_List" class="topline">
+        <table id="gridTable"></table>
+    </div>
+</form>

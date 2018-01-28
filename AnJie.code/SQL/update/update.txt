@@ -1,0 +1,27 @@
+ INSERT INTO
+  AnJieERP.dbo.Base_Button ( ButtonId, ModuleId, ParentId, Code, FullName, Icon,
+                             Category, JsEvent, ActionEvent, Split, Remark,
+                             Enabled, SortCode, DeleteMark, CreateDate,
+                             CreateUserId, CreateUserName, ModifyDate  )
+  VALUES  (LOWER(NEWID()), -- ButtonId - varchar(50)
+            'f19b29b4-3edc-4d17-adc9-165c03020fa9', -- ModuleId - varchar(50)
+            '0', -- ParentId - varchar(50)
+            'btn-setLocation', -- Code - varchar(50)
+            '设置默认收货位', -- FullName - varchar(50)
+            'edit.gif', -- Icon - varchar(50)
+            '1', -- Category - varchar(50)
+            'btn_SetLocation()', -- JsEvent - varchar(50)
+            '/BaseModule/Warehouse/SetLocation', -- ActionEvent - varchar(200)
+            0, -- Split - int
+            '设置默认收货位', -- Remark - varchar(200)
+            1, -- Enabled - int
+            114, -- SortCode - int
+            0, -- DeleteMark - int
+            GETDATE(), -- CreateDate - datetime
+            '', -- CreateUserId - varchar(50)
+            '', -- CreateUserName - varchar(50)
+            GETDATE() 
+            )
+
+
+UPDATE  AnJieERP.dbo.Base_Button  SET SortCode=115 WHERE ModuleId='f19b29b4-3edc-4d17-adc9-165c03020fa9' AND Code='btn-delete'

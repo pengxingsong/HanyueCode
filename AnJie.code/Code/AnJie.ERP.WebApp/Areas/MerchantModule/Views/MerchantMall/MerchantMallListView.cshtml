@@ -1,0 +1,113 @@
+﻿@{
+    ViewBag.Title = "商户店铺列表";
+    Layout = "~/Views/Shared/_LayoutIndex.cshtml";
+}
+
+<style type="text/css">
+    .ui-jqgrid tr.ui-row-ltr td {
+        padding: 0px;
+        border-bottom: 1px solid #ccc;
+    }
+    .ui-jqgrid .ui-jqgrid-htable th {
+        line-height: 15px;
+    }
+    .editable {
+        height: 22px;
+        background-color: #fff;
+    }
+</style>
+<script>
+
+    var index = GetQuery('index');
+
+    $(function () {
+        GetGrid();
+        //绑定键盘按下事件
+        $(document).keypress(function (e) {
+            if (e.which === 13) {
+                //btn_Search()
+            }
+        });
+    });
+
+    //搜索
+    function btn_Search() {
+        var keywords = $("#keywords").val();
+        $("#gridTable").jqGrid('setGridParam', {
+            url: "@Url.Content("~/MerchantModule/MerchantMall/GetMerchantMallAll")"
+        }).trigger('reloadGrid');
+    }
+
+    //显示商户店铺
+    function GetGrid() {
+        $("#gridTable").jqGrid({
+            url: "@Url.Content("~/MerchantModule/MerchantMall/GetMerchantMallAll")",
+            datatype: "json",
+            loadonce: true,
+            viewrecords: true,
+            colModel: [
+                { label: '商户ID', name: 'merchantid', index: 'merchantid', hidden: true },
+                { label: '商户名称', name: "merchantname", index: 'merchantname', width: 150, sortable: false },
+                { label: '商户代码', name: "merchantcode", index: 'merchantcode', width: 100, sortable: false },
+                { label: '店铺ID', name: "mallid", index: 'mallid', hidden: true },
+                { label: '店铺名称', name: "mallname", index: 'mallname', width: 150, sortable: false },
+                { label: '店铺代码', name: "mallcode", index: 'mallcode', width: 100, sortable: false }
+            ],
+            width: 790,
+            height: 350,
+            rownumbers: true,
+            gridview: true,
+            ondblClickRow: function (RowIndx) {
+                var rowData = $(this).jqGrid('getRowData', RowIndx);
+                SetParentFormData(rowData);
+            }
+        });
+    }
+
+    //写入上层界面数据
+    function SetParentFormData(rowData) {
+        var $parentobj = top.frames["Form"];
+        if (!$parentobj.IsExistItem(index, rowData.mallid)) {
+            $parentobj.$("#MerchantID➩" + index).val(rowData.merchantid);
+            $parentobj.$("#MerchantName➩" + index).val(rowData.merchantname);
+            $parentobj.$("#MerchantCode➩" + index).val(rowData.merchantcode);
+            $parentobj.$("#MallID➩" + index).val(rowData.mallid);
+            $parentobj.$("#MallName➩" + index).val(rowData.mallname);
+            $parentobj.$("#MallCode➩" + index).val(rowData.mallcode);
+            //closeDialog();
+            index++;
+            $parentobj.$("#gridTable tbody tr:eq(" + index + ")").find('input').removeAttr('disabled');
+        } else {
+            top.TipMsg("不能重复添加", 3000, "error");
+        }
+       
+    }
+
+    function AcceptClick() {
+        var selectedRowId = $("#gridTable").jqGrid("getGridParam", "selrow");
+        var rowData = $("#gridTable").jqGrid('getRowData', selectedRowId);
+        SetParentFormData(rowData);
+    }
+
+</script>
+
+<div id="list" class="border" style="margin: 1px; border-bottom: none; margin-bottom: 0px;">
+    @*<div class="QueryArea">
+        <table border="0" class="form-find" style="height: 45px;">
+            <tr>
+                <th>
+                    关键字：
+                </th>
+                <td>
+                    <input id="keywords" type="text" class="txt" style="width: 200px" />
+                </td>
+                <td>
+                    <input id="btnSearch" type="button" class="btnSearch" value="搜 索" onclick="btn_Search()" />
+                </td>
+            </tr>
+        </table>
+    </div>
+    <div class="line"></div>*@
+    <table id="gridTable"></table>
+</div>
+

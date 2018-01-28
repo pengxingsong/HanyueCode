@@ -1,0 +1,172 @@
+﻿@{
+    ViewBag.Title = "匹配物流单号";
+    Layout = "~/Views/Shared/_LayoutForm.cshtml";
+}
+
+@section head
+{
+    <!--jqgrid表格组件start-->
+    <script src="~/Content/Scripts/jqgrid/jquery-ui-custom.min.js"></script>
+    <script src="~/Content/Scripts/jqgrid/grid.locale-cn.js"></script>
+    <link href="~/Content/Scripts/jqgrid/css/jqgrid.css" rel="stylesheet" />
+    <script src="~/Content/Scripts/jqgrid/jqGrid.js"></script>
+    <!--表格组件end-->
+    <style type="text/css">
+        .ui-jqgrid tr.ui-row-ltr td {
+            border-right: 1px solid #ccc;
+            border-bottom: 1px solid #ccc;
+        }
+    </style>
+}
+
+<script type="text/javascript">
+    var orderNos = GetQuery('orderNos');
+    var shipTypeId = GetQuery('shipTypeId');
+
+    $(function () {
+        GetGrid();
+    });
+
+    //订单明细
+    function GetGrid() {
+        $("#gridTable").jqGrid({
+            datatype: "local",
+            height: $(window).height() - 100,
+            autowidth: true,
+            colModel: [
+                { label: '订单号', name: "OrderNo", width: 120, sortable: false },
+                { label: '物流单号', name: "ExpressNum", width: 200, sortable: false }
+            ],
+            pager: false,
+            rownumbers: true,
+            shrinkToFit: false,
+            gridview: true,
+            footerrow: true,
+            gridComplete: function () {
+                //合计
+                $(this).footerData("set", {
+                    "OrderNo": "",
+                    "ExpressNum": ""
+                });
+            }
+        });
+
+        var aryOrderNo = orderNos.split(",");
+        for (var i = 1; i <= aryOrderNo.length; i++) {
+            var orderNo = aryOrderNo[i - 1];
+            var rowdata = {
+                OrderNo: '<input id="OrderNo➩' + i + '" value="' + orderNo + '" class="editable readonly" type="text" />',
+                ExpressNum: '<input id="ExpressNum➩' + i + '" class="editable" type="text" datacol="no" err="物流单号" checkexpession="NotNull" />'
+            }
+            $('#gridTable').jqGrid('addRowData', i, rowdata);
+        }
+
+        $("#gridTable").find('input').attr("readonly", "readonly");
+        $("#gridTable tbody tr:eq(1)").find('input').removeAttr('readonly').attr("datacol", "yes");
+        $("#gridTable").find('.readonly').attr("readonly", "readonly");
+
+        $("#gridTable tbody tr").find('td:eq(2)').find('input').keypress(function (e) {
+            //回车键事件
+            if (e.which === 13) {
+                if ($(this).val() !== "") {
+                    var expressNum = $(this).val();
+                    if (expressNum.length > 8) {
+                        var index = $(this).attr('id').split('➩')[1];
+                        window.setTimeout(function () {
+                            FillExpressNum(index, expressNum);
+                        }, 100);
+                    }
+                    else {
+                        tipDialog('物流单号不正确', 2, 'warning');
+                    }
+                } else {
+                    tipDialog('请输入物流单号', 2, 'warning');
+                }
+            }
+        });
+
+        //价格信息文本框点击事件
+        $("#gridTable").find('.editable').click(function () {
+            $(this).select();
+        });
+    }
+
+    function FillExpressNum(index, expressNum) {
+        var qty = orderNos.split(",").length - index;
+        if (qty > 0) {
+            AjaxJson("/OutStockModule/Print/GetFillExpressNum", { ShipTypeId: shipTypeId, ExpressNum: escape(expressNum), Qty: qty }, function (data) {
+
+                if (data.code !== "1") {
+                    tipDialog(data.message, 0);
+                    return;
+                }
+
+                var jsonData = data.rows;
+                if (data.rows.length === 0) {
+                    tipDialog("物流单号无效", 0);
+                    $("#ExpressNum➩" + index).focus();
+                    $("#ExpressNum➩" + index).select();
+                }
+                else {
+                    $("#gridTable tbody tr:eq(" + index + ")").find('input').attr("datacol", "yes");
+                    for (var i = 0; i < data.rows.length; i++) {
+                        var rowData = jsonData[i];
+                        var rowId = parseInt(index) + parseInt(i + 1);
+                        $("#gridTable tbody tr:eq(" + rowId + ")").find('input').removeAttr('readonly');
+                        $("#ExpressNum➩" + rowId).focus();
+                        $("#ExpressNum➩" + rowId).val(rowData);
+                    }
+                    $("#gridTable").find('.readonly').attr("readonly", "readonly");
+                }
+            });
+        }
+    }
+
+    //保存事件
+    function AcceptClick() {
+        if (!CheckDataValid('#form1')) {
+            return false;
+        }
+        confirmDialog('提示', '注：您确认要保存物流单号吗？', function (r) {
+            if (r) {
+                Loading(true, "正在提交数据...");
+                window.setTimeout(function () {
+                    var postData = GetTableDataJson("#gridTable");
+                    AjaxJson("/OutStockModule/Print/SubmitExpressNum", { OrderExpressNum: postData }, function (data) {
+                        tipDialog(data.Message, 3, data.Code);
+                        top.frames[tabiframeId()].windowload();
+                        closeDialog();
+                    });
+                }, 200);
+            }
+        });
+        return true;
+    }
+</script>
+<form id="form1">
+    <div class="note-prompt" style="margin: 1px;">
+        温馨提示：还在构思中...
+    </div>
+    @*<div class="border" style="margin: 1px;">
+            <div class="QueryArea">
+                <table class="form-find" style="height: 45px;">
+                        <tr>
+                            <th>订单号：</th>
+                            <td>
+                                <input id="OrderNo" type="text" datacol="yes" class="txt" style="width: 120px" err="订单号" checkexpession="NotNull" />
+                            </td>
+                            <th>包裹数量：</th>
+                            <td>
+                                <input id="PackageNum" type="text" datacol="yes" class="txt" style="width: 50px" err="包裹数量" checkexpession="Num" />
+                            </td>
+                            <td>
+                                <input id="btnPackage" type="button" class="btnSearch" value="确认打包" onclick="btn_Package()" />
+                            </td>
+                        </tr>
+                    </table>
+            </div>
+        </div>*@
+    <div id="grid_List" class="topline">
+        <table id="gridTable"></table>
+    </div>
+</form>

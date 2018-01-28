@@ -1,0 +1,113 @@
+﻿@{
+    ViewBag.Title = "商品列表";
+    Layout = "~/Views/Shared/_LayoutIndex.cshtml";
+}
+<script>
+    $(function () {
+        $("#keywords").focus();
+        GetGrid();
+        //绑定键盘按下事件
+        $(document).keypress(function (e) {
+            // 回车键事件
+            if (e.which == 13) {
+                $("#keywords").focus();
+                $("#keywords").select();
+                $("#btnSearch").click();
+            }
+        });
+    });
+    //搜索
+    function btn_Search() {
+        var keywords = $("#keywords").val();
+        var merchantId = GetQuery('MerchantId');
+        $("#gridTable").jqGrid('setGridParam', {
+            url: "@Url.Content("~/ProductModule/Product/GetMerchantProductList")?MerchantId=" + merchantId + "&keyword=" + escape(keywords)
+        }).trigger('reloadGrid');
+    }
+
+    //显示商品
+    function GetGrid() {
+        var index = GetQuery('index');
+        var merchantId = GetQuery('MerchantId');
+        if (!merchantId) {
+            alertDialog("请先选择商户", 0);
+            return;
+        }
+
+        $("#gridTable").jqGrid({
+            url: "@Url.Content("~/ProductModule/Product/GetMerchantProductList")?MerchantId=" + merchantId,
+            datatype: "json",
+            height: $(window).height() - 77,
+            autowidth: true,
+            colModel: [
+                { label: '商品主键', name: 'ProductId', hidden: true },
+                { label: '商品编码', name: "Code", width: 120, sortable: false },
+                { label: '商品名称', name: "ProductName", width: 300, sortable: false },
+                { label: '规格型号', name: "Specification", width: 100, sortable: false, align: 'center' },
+                { label: '市场价', name: "Price", width: 100, sortable: false, align: 'center' },
+                { label: '条码', name: "BarCode", width: 100, sortable: false, align: 'center' },
+                { label: '基本单位', name: 'BaseUnit', width: 80, sortable: false, align: 'center' }
+            ],
+            pager: false,
+            rownumbers: true,
+            shrinkToFit: false,
+            gridview: true,
+            //双击事件
+            ondblClickRow: function (RowIndx) {
+                var rowData = $(this).jqGrid('getRowData', RowIndx);
+                //var $parentobj = top.frames[tabiframeId()];
+                var $parentobj = top.frames["SaleOrderForm"];
+                //"SaleOrderForm"
+                if (!$parentobj.IsExistItem(index, rowData.Code)) {
+                    $parentobj.$("#ProductId➩" + index).val(rowData.ProductId);
+                    $parentobj.$("#Code➩" + index).val(rowData.Code);
+                    $parentobj.$("#ProductName➩" + index).val(rowData.ProductName);
+                    $parentobj.$("#Specification➩" + index).val(rowData.Specification);
+                    $parentobj.$("#Price➩" + index).val(rowData.Price);
+                    $parentobj.$("#BarCode➩" + index).val(rowData.BarCode);
+                    $parentobj.$("#BaseUnit➩" + index).val(rowData.BaseUnit);
+
+                    $parentobj.$("#Qty➩" + index).val("1");
+                    $parentobj.$("#TotalAmount➩" + index).val("0.00");                    
+                    $parentobj.$("#gridTable tbody tr:eq(" + index + ")").find('input').attr("datacol", "yes");
+                    index++;
+                    $parentobj.$("#gridTable tbody tr:eq(" + index + ")").find('input').removeAttr('disabled');
+                    $parentobj.$("#gridTable").find('.disabled').attr("disabled", "disabled");
+                    $parentobj.$("#Code➩" + index).focus();
+                    closeDialog();
+                } else {
+                    top.TipMsg("商品代码已存在,不能重复添加", 4000, "error");
+                }
+            }
+        });
+    }
+</script>
+
+<div class="border" style="margin: 1px; border-bottom: none; margin-bottom: 0px;">
+    <div class="QueryArea">
+        <table border="0" class="form-find" style="height: 45px;">
+            <tr>
+                <th>
+                    关键字：
+                </th>
+                <td>
+                    <input id="keywords" type="text" class="txt" style="width: 200px" />
+                </td>
+                <td>
+                    <input id="btnSearch" type="button" class="btnSearch" value="搜 索" onclick="btn_Search()" />
+                </td>
+            </tr>
+        </table>
+    </div>
+    <div class="line"></div>
+    <table id="gridTable"></table>
+    <style>
+        .ui-widget-content {
+            border-left: none;
+        }
+
+        .ui-th-column, .ui-jqgrid .ui-jqgrid-htable th.ui-th-column {
+            background: none;
+        }
+    </style>
+</div>

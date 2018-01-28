@@ -1,0 +1,122 @@
+﻿@{
+    ViewBag.Title = "库区管理 》库区表单";
+    Layout = "~/Views/Shared/_LayoutForm.cshtml";
+}
+<script type="text/javascript">
+    $(function () {
+        BindDropItem("#ZoneType", "ZoneType", "--请选择--");
+        InitControl();
+    })
+
+
+    //得到一个对象实体
+    function InitControl() {
+        if (!!GetQuery('KeyValue')) {
+            AjaxJson("/BaseModule/WarehouseZone/SetForm", { KeyValue: GetQuery('KeyValue') }, function (data) {
+                SetWebControls(data);
+            });
+        } else {
+            //显示顺序
+            AjaxJson("/BaseModule/WarehouseZone/SortCode", {}, function (Data) {
+                $("#SortCode").val(Data);
+            })
+            $("#WarehouseId").val(GetQuery('WarehouseId'));
+        }
+    }
+
+    //保存事件
+    function AcceptClick() {
+        if (!CheckDataValid('#form1')) {
+            return false;
+        }
+        Loading(true, "正在提交数据...");
+        window.setTimeout(function () {
+            var postData = GetWebControls("#form1");
+            AjaxJson("/BaseModule/WarehouseZone/SubmitForm?KeyValue=" + GetQuery('KeyValue'), postData, function (data) {
+                tipDialog(data.Message, 3, data.Code);
+                top.frames[tabiframeId()].windowload();
+                closeDialog();
+            });
+        }, 200);
+    }
+</script>
+<form id="form1" style="margin: 1px">
+    <div id="message" style="display: none"></div>
+    <table class="form">
+        <tr>
+            <th class="formTitle">
+                库区编码：
+            </th>
+            <td class="formValue">
+                <input id="WarehouseId" type="hidden" />
+                <input id="ZoneCode" type="text" class="txt required" datacol="yes" err="库区编码" checkexpession="NotNull" />
+            </td>
+
+            <th class="formTitle">
+                库区名称：
+            </th>
+            <td class="formValue">
+                <input id="ZoneName" type="text" class="txt required" datacol="yes" err="库区名称" checkexpession="NotNull" />
+            </td>
+        </tr>
+        <tr>
+            <th class='formTitle'>库区类型：</th>
+            <td class='formValue'>
+                <select id="ZoneType" class="txtselect required" datacol="yes" err="库区类型" checkexpession="NotNull"></select>
+            </td>
+
+            <th class='formTitle'>盘点方式：</th>
+            <td class='formValue'>
+                <input id="CheckMethod" maxlength=10 type="text" class="txt" style="display:none;" />
+            </td>
+        </tr>
+        <tr>
+            <th class='formTitle'>移入暂存库位：</th>
+            <td class='formValue'>
+                <input id="InLoc" maxlength=64 type="text" class="txt" />
+            </td>
+
+            <th class='formTitle'>移出暂存库位：</th>
+            <td class='formValue'>
+                <input id="OutLoc" maxlength=64 type="text" class="txt" />
+            </td>
+        </tr>
+
+        <tr>
+            <th class='formTitle'>拣选方式：</th>
+            <td class='formValue'>
+                <input id="PickMethod" maxlength=10 type="text" class="txt" style="display:none;" />
+            </td>
+
+            <th class='formTitle'>是否总拣：</th>
+            <td class='formValue'>
+                <input type="checkbox" name="checkbox" checked="checked" id="IsCollect" />
+                <label for="IsCollect">是否总拣</label>
+            </td>
+        </tr>
+
+        <tr>
+            <th class="formTitle">显示顺序：</th>
+            <td class="formValue" colspan="3">
+                <input id="SortCode" type="text" onkeyup="IsNumber(this.id)" class="txt required" datacol="yes" err="显示顺序" checkexpession="Num" />
+            </td>
+        </tr>
+        <tr>
+            <th class="formTitle">选项：</th>
+            <td class="formValue" colspan="3">
+                <span class="item">
+                    <input type="checkbox" name="checkbox" checked="checked" id="Status" />
+                    <label for="Status">是否启用</label>
+                </span>
+            </td>
+        </tr>
+        <tr>
+            <th class="formTitle">
+                备注：
+            </th>
+            <td class="formValue" colspan="3">
+                <textarea id="Comments" name="Comments" maxlength="200" class="txtArea" rows="6"></textarea>
+            </td>
+        </tr>
+    </table>
+</form>

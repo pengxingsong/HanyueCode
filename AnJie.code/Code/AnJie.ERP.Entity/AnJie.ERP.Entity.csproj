@@ -1,0 +1,160 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{FE90ED79-3221-4C96-9361-9019A17BE9F7}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>AnJie.ERP.Entity</RootNamespace>
+    <AssemblyName>AnJie.ERP.Entity</AssemblyName>
+    <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="EntityFramework, Version=4.1.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\Lib\EntityFramework.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.ComponentModel.DataAnnotations" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Data.Entity" />
+    <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.Security" />
+    <Reference Include="System.Web" />
+    <Reference Include="System.Web.Mvc, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\Microsoft.AspNet.Mvc.4.0.20710.0\lib\net40\System.Web.Mvc.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="BaseModule\ForeignSysApiEntity.cs" />
+    <Compile Include="BaseModule\PlatformEntity.cs" />
+    <Compile Include="BaseModule\ShipTypeEntity.cs" />
+    <Compile Include="BaseModule\ShipTypeConfigEntity.cs" />
+    <Compile Include="BaseModule\ShipTypeTemplateEntity.cs" />
+    <Compile Include="BaseModule\WarehouseEntity.cs" />
+    <Compile Include="BaseModule\WarehouseAreaEntity.cs" />
+    <Compile Include="BaseModule\WarehouseLocationEntity.cs" />
+    <Compile Include="BaseModule\WarehouseZoneEntity.cs" />
+    <Compile Include="BaseModule\WaveFlowDetailEntity.cs" />
+    <Compile Include="BaseModule\WaveFlowEntity.cs" />
+    <Compile Include="BaseModule\WaveTemplateEntity.cs" />
+    <Compile Include="BaseUtility\BaseEntity.cs" />
+    <Compile Include="CommonModule\Base_FormAttribute.cs" />
+    <Compile Include="CommonModule\Base_FormAttributeValue.cs" />
+    <Compile Include="CommonModule\Base_Shortcuts.cs" />
+    <Compile Include="CommonModule\Base_CodeRule.cs" />
+    <Compile Include="CommonModule\Base_CodeRuleDetail.cs" />
+    <Compile Include="CommonModule\Base_CodeRuleSerious.cs" />
+    <Compile Include="CommonModule\Base_ButtonPermission.cs" />
+    <Compile Include="CommonModule\Base_DataScopePermission.cs" />
+    <Compile Include="CommonModule\Base_ExcelImport.cs" />
+    <Compile Include="CommonModule\Base_ExcelImportDetail.cs" />
+    <Compile Include="CommonModule\Base_ModulePermission.cs" />
+    <Compile Include="CommonModule\Base_ViewPermission.cs" />
+    <Compile Include="CommonModule\Base_View.cs" />
+    <Compile Include="CommonModule\Base_ViewWhere.cs" />
+    <Compile Include="CommonModule\Base_Department.cs" />
+    <Compile Include="CommonModule\Base_ObjectUserRelation.cs" />
+    <Compile Include="CommonModule\Base_Roles.cs" />
+    <Compile Include="CommonModule\Base_User.cs" />
+    <Compile Include="CommonModule\Base_Company.cs" />
+    <Compile Include="CommonModule\Base_ProvinceCity.cs" />
+    <Compile Include="CommonModule\Base_QueryRecord.cs" />
+    <Compile Include="CommonModule\Base_SysLog.cs" />
+    <Compile Include="CommonModule\Base_SysLogDetail.cs" />
+    <Compile Include="CommonModule\Base_DataDictionary.cs" />
+    <Compile Include="CommonModule\Base_DataDictionaryDetail.cs" />
+    <Compile Include="CommonModule\Base_Button.cs" />
+    <Compile Include="CommonModule\Base_Module.cs" />
+    <Compile Include="BaseUtility\FileProperty.cs" />
+    <Compile Include="InStockModule\ReceiptEntity.cs" />
+    <Compile Include="InStockModule\ReceiptItemEntity.cs" />
+    <Compile Include="InStockModule\ReceiptRecordEntity.cs" />
+    <Compile Include="InventoryModule\InventoryLocationEntity.cs" />
+    <Compile Include="InventoryModule\InventoryEntity.cs" />
+    <Compile Include="InventoryModule\InventoryLocationTransactionEntity.cs" />
+    <Compile Include="InventoryModule\InventoryTransactionEntity.cs" />
+    <Compile Include="LogisticsModule\ShipVendorEntity.cs" />
+    <Compile Include="LogisticsModule\ShipVendorShipTemplateEntity.cs" />
+    <Compile Include="LogisticsModule\ShipVendorShipTemplateItemEntity.cs" />
+    <Compile Include="MerchantModule\MerchantEntity.cs" />
+    <Compile Include="MerchantModule\MerchantMallEntity.cs" />
+    <Compile Include="MerchantModule\MerchantShipTemplateEntity.cs" />
+    <Compile Include="MerchantModule\MerchantShipTemplateItemEntity.cs" />
+    <Compile Include="MerchantModule\MerchantWarehouseEntity.cs" />
+    <Compile Include="OrderModule\SaleOrderEntity.cs" />
+    <Compile Include="OrderModule\SaleOrderItemEntity.cs" />
+    <Compile Include="OrderModule\SaleOrderImportFileEntity.cs" />
+    <Compile Include="OrderModule\SaleOrderImportItemEntity.cs" />
+    <Compile Include="OutStockModule\CartonEntity.cs" />
+    <Compile Include="OutStockModule\HandoverEntity.cs" />
+    <Compile Include="OutStockModule\HandoverItemEntity.cs" />
+    <Compile Include="OutStockModule\PickItemEntity.cs" />
+    <Compile Include="OutStockModule\PickMasterEntity.cs" />
+    <Compile Include="OutStockModule\PrintBatchEntity.cs" />
+    <Compile Include="OutStockModule\PrintBatchItemEntity.cs" />
+    <Compile Include="OutStockModule\PrintPlanEntity.cs" />
+    <Compile Include="BaseModule\PlatformMerchantsAuthEntity.cs" />
+    <Compile Include="ProductModule\ProductCategoryEntity.cs" />
+    <Compile Include="ProductModule\ProductEntity.cs" />
+    <Compile Include="ProductModule\ProductImportFileEntity.cs" />
+    <Compile Include="ProductModule\ProductImportItemEntity.cs" />
+    <Compile Include="ProductModule\ProductLocationEntity.cs" />
+    <Compile Include="ProductModule\ProductMerchantEntity.cs" />
+    <Compile Include="ProductModule\ProductMerchantIdEntity.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="PurchaseModule\PurchaseOrderEntity.cs" />
+    <Compile Include="PurchaseModule\PurchaseOrderItemEntity.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\AnJie.ERP.DataAccess\AnJie.ERP.DataAccess.csproj">
+      <Project>{7d1a96cf-9b89-443f-ab95-12343f52a1ac}</Project>
+      <Name>AnJie.ERP.DataAccess</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\AnJie.ERP.Utilities\AnJie.ERP.Utilities.csproj">
+      <Project>{7a9e54b1-d54d-4af2-99e9-06e9baff4846}</Project>
+      <Name>AnJie.ERP.Utilities</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
+  </ItemGroup>
+  <ItemGroup />
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

@@ -1,0 +1,85 @@
+﻿@{
+    ViewBag.Title = "波次流程管理 》波次流程表单";
+    Layout = "~/Views/Shared/_LayoutForm.cshtml";
+}
+<script type="text/javascript">
+    $(function () {
+        InitControl();
+    });
+
+    //得到一个对象实体
+    function InitControl() {
+        if (!!GetQuery('KeyValue')) {
+            AjaxJson("/BaseModule/WaveFlow/SetForm", { KeyValue: GetQuery('KeyValue') }, function (data) {
+                SetWebControls(data);
+            });
+        } else {
+            //显示顺序
+            AjaxJson("/BaseModule/WaveFlow/SortCode", {}, function (Data) {
+                $("#SortCode").val(Data);
+            })
+            $("#WarehouseId").val(GetQuery('WarehouseId'));
+        }
+    }
+
+    //保存事件
+    function AcceptClick() {
+        if (!CheckDataValid('#form1')) {
+            return false;
+        }
+        Loading(true, "正在提交数据...");
+        window.setTimeout(function () {
+            var postData = GetWebControls("#form1");
+            AjaxJson("/BaseModule/WaveFlow/SubmitForm?KeyValue=" + GetQuery('KeyValue'), postData, function (data) {
+                tipDialog(data.Message, 3, data.Code);
+                top.frames[tabiframeId()].windowload();
+                closeDialog();
+            });
+        }, 200);
+    }
+</script>
+<form id="form1" style="margin: 1px">
+    <div id="message" style="display: none"></div>
+    <table class="form">
+        <tr>
+            <th class="formTitle">
+                区域编码：
+            </th>
+            <td class="formValue">
+                <input id="WarehouseId" type="hidden" />
+                <input id="AreaCode" type="text" class="txt required" datacol="yes" err="区域编码" checkexpession="NotNull" />
+            </td>
+        </tr>
+        <tr>
+            <th class="formTitle">
+                区域名称：
+            </th>
+            <td class="formValue">
+                <input id="AreaName" type="text" class="txt required" datacol="yes" err="区域名称" checkexpession="NotNull" />
+            </td>
+        </tr>
+
+        <tr>
+            <th class="formTitle">显示顺序：</th>
+            <td class="formValue">
+                <input id="SortCode" type="text" onkeyup="IsNumber(this.id)" class="txt required" datacol="yes" err="显示顺序" checkexpession="Num" />
+            </td>
+        </tr>
+        <tr>
+            <th class="formTitle">选项：</th>
+            <td class="formValue">
+                <span class="item">
+                    <input type="checkbox" name="checkbox" checked="checked" id="Status" />
+                    <label for="Status">有效</label>
+                </span>
+            </td>
+        </tr>
+        <tr>
+            <th class="formTitle">描述：
+            </th>
+            <td class="formValue">
+                <textarea id="Description" name="Description" maxlength="200" class="txtArea" rows="6"></textarea>
+            </td>
+        </tr>
+    </table>
+</form>

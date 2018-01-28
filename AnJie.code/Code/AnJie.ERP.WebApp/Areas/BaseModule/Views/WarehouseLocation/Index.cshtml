@@ -1,0 +1,138 @@
+﻿@{
+    ViewBag.Title = "储位管理";
+    Layout = "~/Views/Shared/_LayoutIndex.cshtml";
+}
+<script type="text/javascript">
+    $(document).ready(function () {
+        GetTree();
+        GetGrid("");
+    });
+
+    var WarehouseId, WarehouseName = "";
+    //加载左边树
+    function GetTree() {
+        var itemtree = {
+            onnodeclick: function (item) {
+                WarehouseId = item.id;            //ID
+                if (WarehouseId === '1') {
+                    WarehouseId = '';
+                }
+                WarehouseName = item.text;        //名称
+                $("#CenterTitle").html(" - " + WarehouseName);
+                $("#gridTable").jqGrid('setGridParam', { url: "@Url.Content("~/BaseModule/WarehouseLocation/GridListJson")?WarehouseId=" + WarehouseId }).trigger('reloadGrid');
+            },
+            url: "@Url.Content("~/BaseModule/Warehouse/TreeJson")"
+        };
+        $("#ItemsTree").treeview(itemtree);
+    }
+
+    //加载表格
+    function GetGrid(WarehouseId) {
+        $("#gridTable").jqGrid({
+            url: "@Url.Content("~/BaseModule/WarehouseLocation/GridListJson")",
+            datatype: "json",
+            height: $(window).height() - 105,
+            autowidth: true,
+            colModel: [
+                { label: '仓库Id', name: 'warehouseid', index: 'warehouseid', hidden: true },
+                { label: '储位主键', name: 'locationid', index: "locationid", hidden: true },
+                { label: '所属仓库', name: 'warehousename', index: "warehousename", width: 130 },
+                { label: '储位编码', name: 'code', index: 'code', width: 100 },
+                { label: '作业区域', name: 'areacode', index: 'areacode', width: 100 },
+                { label: '上架区域', name: 'putzone', index: 'putzone', width: 100 },
+                { label: '配货区域', name: 'alloczone', index: 'alloczone', width: 100 },
+                { label: '盘点区域', name: 'cczone', index: 'cczone', width: 100 },
+                { label: '拣货顺序', name: 'pickingseq', index: 'pickingseq', width: 100 },
+                { label: '盘点顺序', name: 'cyclecountseq', index: 'cyclecountseq', width: 100 },
+                { label: '上架顺序', name: 'putawayseq', index: 'putawayseq', width: 0 },
+                { label: '库位形式', name: 'locationclass', index: 'locationclass', width: 0 },
+                { label: '库位类型', name: 'locationtype', index: 'locationtype', width: 0 },
+                { label: '流动等级(abc)', name: 'movementtype', index: 'movementtype', width: 0 },
+              
+                { label: '是否容积校验', name: 'ischeckcapacity', index: 'ischeckcapacity', width: 0 },
+
+                {
+                    label: '是否启用', name: 'isenable', index: 'isenable', width: 45, align: 'center',
+                    formatter: function (cellvalue, options, rowObject) {
+                        if (cellvalue === 1) return "<img src='../../Content/Images/checkokmark.gif'/>";
+                        if (cellvalue === 0) return "<img src='../../Content/Images/checknomark.gif'/>";
+                        return cellvalue;
+                    }
+                },
+                { label: '备注', name: 'Comments', index: "Comments", width: 300 }
+            ],
+            pager: false,
+            rowNum: 1000,
+            sortname: 'SortCode',
+            sortorder: 'asc',
+            rownumbers: true,
+            shrinkToFit: false,
+            gridview: true
+        });
+        columnModelData("#gridTable");
+    }
+
+    //新增
+    function btn_add() {
+        if (!!WarehouseId) {
+            var url = "/BaseModule/WarehouseLocation/Form?WarehouseId=" + WarehouseId;
+            openDialog(url, "Form", "新增储位", 800, 450, function (iframe) {
+                top.frames[iframe].AcceptClick();
+            });
+        } else {
+            alertDialog("请选择左边仓库", 0);
+        }
+    }
+
+    //编辑
+    function btn_edit() {
+        var KeyValue = GetJqGridRowValue("#gridTable", "locationid");
+        if (IsChecked(KeyValue)) {
+            var url = "/BaseModule/WarehouseLocation/Form?KeyValue=" + KeyValue;
+            openDialog(url, "Form", "编辑储位", 800, 450, function (iframe) {
+                top.frames[iframe].AcceptClick();
+            });
+        }
+    }
+
+    //删除
+    function btn_delete() {
+        var keyValue = GetJqGridRowValue("#gridTable", "locationid");
+        if (IsSelectData(keyValue)) {
+            var delparm = 'KeyValue=' + keyValue;
+            delConfig('/BaseModule/WarehouseLocation/DeleteLocation', delparm, keyValue.split(",").length);
+        }
+    }
+
+    //刷新
+    function windowload() {
+        $("#gridTable").trigger("reloadGrid"); //重新载入
+    }
+
+
+</script>
+<div id="layout" class="layout">
+    <!--左边-->
+    <div class="layoutPanel layout-west">
+        <div class="btnbartitle">
+            <div>
+                仓库列表
+            </div>
+        </div>
+        <div class="ScrollBar" id="ItemsTree"></div>
+    </div>
+    <!--中间-->
+    <div class="layoutPanel layout-center">
+        <div class="btnbartitle">
+            <div>
+                储位<span id="CenterTitle"></span>
+            </div>
+        </div>
+        <div class="tools_bar" style="border-top: none; margin-bottom: 0px;">
+            <div class="PartialButton">
+                @Html.Partial("_PartialButton")
+            </div>
+        </div>
+        <table id="gridTable"></table>
+    </div>
+</div>

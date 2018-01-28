@@ -1,0 +1,142 @@
+﻿@{
+    ViewBag.Title = "打印历史";
+    Layout = "~/Views/Shared/_LayoutIndex.cshtml";
+}
+<link href="~/Content/Styles/ui-startmenu.css" rel="stylesheet" />
+<script>
+    var SelectBatchId;
+    //初始化
+    $(function () {
+        $("#layoutA").splitter({
+            type: "v",
+            outline: true,
+            minLeft: 200, sizeLeft: 200, maxLeft: 250,
+            anchorToWindow: true,
+            accessKey: "L"
+        });
+        LoadProject();
+    });
+
+    //回调查询确认事件
+    function QueryClick(callBack) {
+        callBack(SelectBatchId);
+        closeDialog();
+    }
+
+    //表格默认添加20行
+    function CreateTableRow(BatchId) {
+        Loading(true);
+        SelectBatchId = BatchId;
+        $("#grid_Condition tbody tr").remove();
+        AjaxJson("/OutStockModule/Print/QueryPrintBatchItem", { BatchId: BatchId }, function (JsonData) {
+            $.each(JsonData, function (i) {
+                var tr = '';
+                tr += '<tr>';
+                tr += '<td class="td-div" style="text-align: center;border-left: none;">' + (i + 1) + '</td>'
+                tr += '<td style="text-align: center;"><input id="OrderNo➩' + i + '" value="' + JsonData[i].OrderNo + '" type="text" class="txt" /></td>'
+                tr += '<td><input id="ExpressNum➩' + i + '" value="' + JsonData[i].ExpressNum + '" type="text" class="txt" /></td>'
+                tr += '</tr>';
+                $("#grid_Condition tbody").append(tr);
+            });
+        });
+        $("#grid_Condition tbody tr").find('input').click(function () {
+            $(this).select();
+        });
+        Loading(false);
+    }
+
+    //加载方案列表
+    function LoadProject() {
+        AjaxJson("/OutStockModule/Print/QueryPrintBatch", {}, function (JsonData) {
+            $.each(JsonData, function (i) {
+                var BatchId = JsonData[i].BatchId;
+                var PrintTime = formatDate(JsonData[i].PrintTime, 'yyyy-MM-dd hh:mm:ss');
+                var ItemCount = JsonData[i].ItemCount;
+
+                var isSelect = "";
+                if (i == 0) {
+                    CreateTableRow(BatchId);
+                    $("#Project_Menu li div").removeClass('leftselected');
+                    isSelect = "leftselected";
+                }
+                $("#Project_Menu ul").append('<li id=' + BatchId + ' BatchId=' + BatchId + '><div class="main_menu ' + isSelect + '" ><img src="@Url.Content("~/Content/Images/Icon16/application_form_magnify.png")">' + PrintTime + '(' + ItemCount + ')' + '</div></li>');
+            });
+        });
+
+        readyIndex();
+        //点击打印时间加载单据列表
+        $("#Project_Menu li div").click(function () {
+            var BatchId = $(this).parent().attr('BatchId');
+            if (BatchId) {
+                CreateTableRow(BatchId);
+            }
+            else {
+                alertDialog("查询失败", 0);
+            }
+        })
+    }
+
+    function windowload() {
+        Replace();
+    }
+</script>
+<div id="layoutA" class="layout">
+    <!--左边-->
+    <div class="layoutPanel layout-west" style="overflow: hidden">
+
+        <div id="Project_Menu" class="main_menu" style="float: left;">
+            <ul></ul>
+            <style>
+                .main_menu {
+                    width: 100%;
+                    height: 100%;
+                    border-right: none;
+                    margin-right: 0;
+                    background: #f5f5f5;
+                }
+
+                    .main_menu li div {
+                        height: 29px;
+                        line-height: 29px;
+                    }
+
+                    .main_menu img {
+                        margin-bottom: 3px;
+                        margin-right: 0px;
+                    }
+            </style>
+        </div>
+    </div>
+    <!--中间-->
+    <div class="layoutPanel layout-center">
+        <div class="ToolbaAarea">
+            <div class="bd" style="border: none;">
+                <div class="tipstitle_title settingtable bold bd todayInfoPanelTab rightPanelTitle_normal">
+                    <div class="tab_list_top" style="position: absolute">
+                        <div id="TabCondition" class="tab_list bd actived">单据明细</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="ScrollBar" style="margin-top: 1px;">
+            <div id="Condition" class="tabPanel">
+                <table id="grid_Condition" class="grid">
+                    <thead>
+                        <tr>
+                            <td style="width: 30px; text-align: center; border-left: none;">
+                                <div class="table-header">序号</div>
+                            </td>
+                            <td style="width: 150px; text-align: center;">
+                                <div class="table-header">订单号</div>
+                            </td>
+                            <td style="width: 200px; text-align: center;">
+                                <div class="table-header">物流单号</div>
+                            </td>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

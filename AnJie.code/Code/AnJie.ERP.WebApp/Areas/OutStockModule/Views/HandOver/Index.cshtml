@@ -1,0 +1,230 @@
+﻿@{
+    ViewBag.Title = "出库签收";
+    Layout = "~/Views/Shared/_LayoutIndex.cshtml";
+}
+<script type="text/javascript">
+    var hasInit = false;
+    $(function () {
+        $("#ExpressNum").attr({ "disabled": "disabled" });
+        BindShipType();
+
+        //物流方式
+        $("#ShipTypeId").change(function () {
+            $("#ExpressNum").val("");
+            var shipTypeId = $("#ShipTypeId").val();
+            if (shipTypeId !== "") {
+                $("#ExpressNum").removeAttr("disabled");
+                $("#ExpressNum").focus();
+                LoadGrid(shipTypeId);
+            } else {
+                $("#ExpressNum").attr({ "disabled": "disabled" });
+                tipDialog('请选择物流方式', 4, 'warning');
+            }
+        });
+
+        //回车键事件
+        $("#ExpressNum").keypress(function (e) {
+            if (e.which === 13) {
+                if ($(this).val() !== "") {
+                    var expressNum = $(this).val();
+                    if (expressNum.length > 5) {
+                        window.setTimeout(function () {
+                            ScanExpressNum(expressNum);
+                            $("#ExpressNum").select();
+                        }, 100);
+                        
+                    } else {
+                        $('#notifyAudio')[0].play();
+                    }
+                } else {
+                    tipDialog('请扫描物流单号', 4, 'warning');
+                    $('#errorAudio')[0].play();
+                }
+            }
+        });
+    });
+
+    //物流方式下拉框
+    function BindShipType() {
+        $("#ShipTypeId").html("");
+        $("#ShipTypeId").append("<option value=''>--请选择--</option>");
+        AjaxJson("/BaseModule/ShipType/ListJson", {}, function (dataJson) {
+            $.each(dataJson, function (i) {
+                $("#ShipTypeId").append($("<option></option>").val(dataJson[i].ShipTypeId).html(dataJson[i].ShipTypeName));
+            });
+        });
+    }
+
+    //搜索
+    function LoadGrid(shipTypeId) {
+        if (hasInit) {
+            $("#gridTable").jqGrid('setGridParam', {
+                url: "@Url.Content("~/OutStockModule/HandOver/GetHandOverItemList")?shipTypeId=" + shipTypeId,
+                page: 1
+            }).trigger('reloadGrid');
+        } else {
+            var selectRowIndx;
+            $("#gridTable").jqGrid({
+                url: "@Url.Content("~/OutStockModule/HandOver/GetHandOverItemList")?shipTypeId=" + shipTypeId,
+                datatype: "json",
+                height: $(window).height() - 125,
+                autowidth: true,
+                colModel: [
+                    { label: '明细主键', name: 'ItemId', hidden: true },
+                    { label: '物流单号', name: "ExpressNum", width: 100, sortable: false },
+                    { label: '订单号', name: "OrderNo", width: 250, sortable: false },
+                    {
+                        label: '扫描时间', name: 'ScanedTime', width: 100, sortable: false, align: 'center',
+                        formatter: function (cellvalue, options, rowObject) {
+                            return formatDate(cellvalue, 'yyyy-MM-dd hh:mm:ss');
+                        }
+                    }
+                ],
+                viewrecords: true,
+                rowNum: 30,
+                rowList: [30, 50, 100, 500, 1000],
+                sortname: 'ScanedTime',
+                sortorder: 'desc',
+                rownumbers: true,
+                shrinkToFit: false,
+                gridview: true,
+                onSelectRow: function() {
+                    selectRowIndx = GetJqGridRowIndx("#" + this.id);
+                },
+                gridComplete: function() {
+                    $("#" + this.id).jqGrid('setSelection', selectRowIndx);
+                }
+            });
+            columnModelData("#gridTable");
+            hasInit = true;
+        }
+    }
+
+    //单号扫描
+    function ScanExpressNum(expressNum) {
+        var shipTypeId = $("#ShipTypeId").val();
+        AjaxJson("/OutStockModule/HandOver/ScanExpressNum",
+            { ShipTypeId: shipTypeId, ExpressNum: expressNum },
+            function(data) {
+                if (data.Message !== "") {
+                    tipDialog(data.Message, 2, 'warning');
+                    $('#errorAudio')[0].play();
+                }
+                if (data.Code === "2") {
+                    LoadGrid(shipTypeId);
+                }
+                $("#ExpressNum").focus();
+                $("#ExpressNum").select();
+                $('#notifyAudio')[0].play();
+            });
+        return true;
+    }
+
+    function btn_Print() {
+        var shipTypeId = $("#ShipTypeId").val();
+        if (shipTypeId === "") {
+            tipDialog('请选择物流方式', 3, 'warning');
+            return;
+        }
+        var msg = "<div class='ui_alert'>确认要结束扫描该物流交接单吗？</div>";
+        top.$.dialog({
+            id: "confirmDialog",
+            lock: true,
+            icon: "hits.png",
+            content: msg,
+            title: "系统提示",
+            button: [
+            {
+                name: '结束并打印',
+                callback: function () {
+                    Loading(true, "正在结束该物流交接单...");
+                    window.setTimeout(function () {
+                        AjaxJson("/OutStockModule/HandOver/CloseHandover",
+                            { shipTypeId: shipTypeId },
+                            function (data) {
+                                var handoverId = data.Message;
+                                LoadGrid(shipTypeId);
+                                if (shipTypeId !== "") {
+                                    openDialog("@Url.Content("~/OutStockModule/HandOver/SelectPrinter")?shipTypeId=" + shipTypeId + "&handoverId=" + handoverId, "SelectPrinter", "选择打印机", 400, 100, function (iframe) {
+                                        top.frames[iframe].AcceptClick();
+                                    });
+                                } else {
+                                    tipDialog('请选择物流方式', 3, 'warning');
+                                }
+                            });
+                    }, 200);
+                }
+            },
+            {
+                name: '结束不打印',
+                callback: function () {
+                    Loading(true, "正在结束该物流交接单...");
+                    window.setTimeout(function () {
+                        AjaxJson("/OutStockModule/HandOver/CloseHandover",
+                            { shipTypeId: shipTypeId },
+                            function (data) {
+                                LoadGrid(shipTypeId);
+                                $("#ExpressNum").focus();
+                                $("#ExpressNum").select();
+                            });
+                    }, 200);
+                }
+            },
+            {
+                name: '取消'
+            }
+            ]
+        });
+    }
+
+    function PrintHandover(handoverId, printIndex) {
+        openDialog("@Url.Content("~/OutStockModule/HandOver/PrintHandover")?handoverId=" + handoverId + "&printIndex=" + printIndex, "PrintHandover", "打印物流交接单", 600, 200, function (iframe) {
+            top.frames[iframe].AcceptClick();
+        });
+    }
+
+    $(function () {
+        if ($.browser.msie && ($.browser.version === '8.0' || $.browser.version === '9.0')) {
+            $('<embed id="notifyAudio" autostart="false" volume="100" hidden="true"  src="../../Content/Audio/notify.wav" type="audio/wav"/>').appendTo('body');
+            $('<embed id="errorAudio" autostart="false" volume="100" hidden="true"  src="../../Content/Audio/error.wav" type="audio/wav"/>').appendTo('body');
+        } else {
+            $('<audio id="notifyAudio">' +
+               '<source src="../../Content/Audio/notify.ogg" type="audio/ogg">' +
+               '<source src="../../Content/Audio/notify.mp3" type="audio/mpeg">' +
+               '<source src="../../Content/Audio/notify.wav" type="audio/wav">' +
+               '</audio>').appendTo('body');
+
+            $('<audio id="errorAudio">' +
+               '<source src="../../Content/Audio/error.wav" type="audio/wav">' +
+               '</audio>').appendTo('body');
+        }
+    });
+</script>
+
+<div class="tools_bar leftline rightline" style="margin-bottom: 0px; margin: 1px;">
+    <div class="PartialButton">
+        @Html.Partial("_PartialButton")
+    </div>
+</div>
+<div class="note-prompt" style="margin: 1px;">
+    注意：物流单号扫描成功后会自动签收，若再次扫描该物流单号会提示是否进行反签收。
+</div>
+<div class="border" style="margin: 1px;">
+    <div class="QueryArea">
+        <table class="form-find" style="height: 45px;">
+            <tr>
+                <th style="width: 6%;">物流方式：</th>
+                <td style="width: 14%;">
+                    <select id="ShipTypeId" class="txt select" datacol="yes" style="width: 99%"></select>
+                </td>
+                <th>扫描物流单号：</th>
+                <td>
+                    <input id="ExpressNum" type="text" datacol="yes" class="txt" style="width: 140px" err="物流单货/出库单号" checkexpession="NotNull" />
+                </td>
+            </tr>
+        </table>
+    </div>
+</div>
+<div id="grid_List" class="topline">
+    <table id="gridTable"></table>
+</div>

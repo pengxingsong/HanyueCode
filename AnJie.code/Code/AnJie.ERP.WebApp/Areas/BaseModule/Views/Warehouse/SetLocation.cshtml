@@ -1,0 +1,43 @@
+﻿@{
+    ViewBag.Title = "设置仓库默认收货储位";
+    Layout = "~/Views/Shared/_LayoutForm.cshtml";
+}
+<script type="text/javascript">
+    var warehouseId = GetQuery('WarehouseId');
+    $(function () {
+        BindLocation();
+    });
+
+    //分类下拉框
+    function BindLocation() {
+        $("#LocationId").html("");
+        $("#LocationId").append("<option value=''>--请选择--</option>");
+        AjaxJson("/BaseModule/WarehouseLocation/ListJson", { warehouseId: warehouseId }, function (dataJson) {
+            $.each(dataJson, function (i) {
+                $("#LocationId").append($("<option></option>").val(dataJson[i].LocationId).html(dataJson[i].Code));
+            });
+        });
+    }
+
+    //保存事件
+    function AcceptClick() {
+        if (!CheckDataValid('#form1')) {
+            return false;
+        }
+        var postData = {
+            warehouseId: warehouseId,
+            locationId: $("#LocationId").val()
+        }
+        AjaxJson("/BaseModule/Warehouse/SubmitSetLocation", postData, function (data) {
+            tipDialog(data.Message, 3, data.Code);
+            top.frames[tabiframeId()].windowload();
+            closeDialog();
+        });
+        return true;
+    }
+</script>
+<form id="form1" style="margin: 15px; margin-left: 20px; margin-right: 20px;">
+    <div>
+        <select id="LocationId" class="txtselect" datacol="yes" err="物流方式" checkexpession="NotNull" style="width: 95%"></select>
+    </div>
+</form>

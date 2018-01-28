@@ -1,0 +1,93 @@
+﻿@{
+    ViewBag.Title = "分类管理";
+    Layout = "~/Views/Shared/_LayoutIndex.cshtml";
+}
+<script type="text/javascript">
+    $(document).ready(function () {
+        GetGrid();
+    });
+
+
+    //加载表格
+    function GetGrid() {
+        $("#gridTable").jqGrid({
+            url: "@Url.Content("~/ProductModule/ProductCategory/GridListJson")",
+            datatype: "json",
+            height: $(window).height() - 105,
+            autowidth: true,
+            colModel: [
+                { label: '主键', name: 'categoryid', index: "categoryid", hidden: true },
+                { label: '分类编码', name: 'code', index: "code", width: 80 },
+                { label: '分类名称', name: 'categoryname', index: "categoryname", width: 100 },
+                { label: '所属商户Id', name: 'merchantid', index: 'merchantid', hidden: true },
+                { label: '所属商户', name: 'merchantname', index: "merchantname", width: 120 },
+                {
+                    label: '有效', name: 'enabled', index: 'enabled', width: 45, align: 'center',
+                    formatter: function (cellvalue, options, rowObject) {
+                        if (cellvalue === '1') return "<img src='../../Content/Images/checkokmark.gif'/>";
+                        if (cellvalue === '0') return "<img src='../../Content/Images/checknomark.gif'/>";
+                        return cellvalue;
+                    }
+                },
+                { label: '说明', name: 'remark', index: "remark", width: 300 }
+            ],
+            pager: false,
+            rowNum: 1000,
+            sortname: 'SortCode',
+            sortorder: 'asc',
+            rownumbers: true,
+            shrinkToFit: false,
+            gridview: true
+        });
+        columnModelData("#gridTable");
+    }
+
+    //新增
+    function btn_add() {
+        var url = "/ProductModule/ProductCategory/Form";
+        openDialog(url, "Form", "新增商品分类信息", 650, 260, function (iframe) {
+            top.frames[iframe].AcceptClick();
+        });
+    }
+
+    //编辑
+    function btn_edit() {
+        var keyValue = GetJqGridRowValue("#gridTable", "categoryid");
+        if (IsChecked(keyValue)) {
+            var url = "/ProductModule/ProductCategory/Form?KeyValue=" + keyValue;
+            openDialog(url, "Form", "编辑商品分类信息", 650, 260, function (iframe) {
+                top.frames[iframe].AcceptClick();
+            });
+        }
+    }
+
+    //删除
+    function btn_delete() {
+        var keyValue = GetJqGridRowValue("#gridTable", "categoryid");
+        if (IsSelectData(keyValue)) {
+            var delparm = 'KeyValue=' + keyValue;
+            delConfig('/ProductModule/ProductCategory/DeleteCategory', delparm, keyValue.split(",").length);
+        }
+    }
+
+    //刷新
+    function windowload() {
+        $("#gridTable").trigger("reloadGrid"); //重新载入
+    }
+</script>
+<div class="leftline rightline" style="margin-left: 1px; margin-right: 1px;">
+    <div class="tools_bar" style="margin-top: 1px; margin-bottom: 0px;">
+        <div class="PartialButton">
+            @Html.Partial("_PartialButton")
+        </div>
+    </div>
+    <div id="grid_List" class="topline" style="margin-top: 1px;">
+        <table id="gridTable"></table>
+        <div id="gridPager"></div>
+    </div>
+</div>
+<style>
+    .ui-widget-content {
+        border-left: none;
+    }
+</style>

@@ -1,0 +1,221 @@
+﻿@{
+    ViewBag.Title = "核单发货";
+    Layout = "~/Views/Shared/_LayoutIndex.cshtml";
+}
+<script type="text/javascript">
+    var hasInit = false;
+    $(function () {
+
+        //查询订单（注：这个方法是理由jquery查询）
+        $("#OrderNo").keypress(function (e) {
+            //回车键事件
+            if (e.which === 13) {
+                if ($(this).val() !== "") {
+                    var orderNo = $(this).val();
+                    if (orderNo.length > 7) {
+                        window.setTimeout(function () {
+                            AjaxJson("/OutStockModule/Outbound/ScanBillNo",
+                                { BillNo: orderNo },
+                                function (data) {
+                                    if (data.Code > 0) {
+                                        $("#OrderNo").attr({ "disabled": "disabled" });
+                                        LoadGrid(orderNo);
+                                        $("#ProductCode").focus();
+                                        $('#notifyAudio')[0].play();
+                                    } else {
+                                        $('#errorAudio')[0].play();
+                                    }
+                                });
+                        }, 100);
+                    } else {
+                        tipDialog('无效的物流单号或订单号', 1, 'warning');
+                        $('#errorAudio')[0].play();
+                    }
+                } else {
+                    tipDialog('请输入物流单号或订单号', 4, 'warning');
+                    $('#errorAudio')[0].play();
+                }
+            }
+        });
+
+        $("#ProductCode").keypress(function (e) {
+            //回车键事件
+            if (e.which === 13) {
+                if ($(this).val() !== "") {
+                    var productCode = $(this).val();
+                    ScanProduct(productCode);
+                } else {
+                    tipDialog('请扫描商品条码', 4, 'warning');
+                    $('#errorAudio')[0].play();
+                }
+            }
+        });
+    });
+
+    //搜索
+    function LoadGrid(billNo) {
+        if (hasInit) {
+            $("#gridTable").jqGrid('setGridParam', {
+                url: "@Url.Content("~/OutStockModule/Outbound/GetOrderItemList")?BillNo=" + billNo,
+                page: 1
+            }).trigger('reloadGrid');
+        } else {
+            var selectRowIndx;
+            $("#gridTable").jqGrid({
+                url: "@Url.Content("~/OutStockModule/Outbound/GetOrderItemList")?BillNo=" + billNo,
+                datatype: "json",
+                height: $(window).height() - 125,
+                autowidth: true,
+                colModel: [
+                    { label: '商品主键', name: 'ProductId', hidden: true },
+                    { label: '商品编码', name: "Code", width: 100, sortable: false },
+                    { label: '商品名称', name: "ProductName", width: 250, sortable: false },
+                    { label: '条码', name: "BarCode", width: 100, sortable: false, align: 'center' },
+                    { label: '基本单位', name: 'BaseUnit', width: 80, sortable: false, align: 'center' },
+                    { label: '数量', name: "Qty", width: 100, sortable: false, align: 'center' },
+                    { label: '已扫描', name: "QtyScaned", width: 100, sortable: false, align: 'center' }
+                ],
+                viewrecords: true,
+                rowNum: 30,
+                rowList: [30, 50, 100, 500, 1000],
+                sortname: 'CreateDate',
+                sortorder: 'desc',
+                rownumbers: true,
+                shrinkToFit: false,
+                gridview: true,
+                onSelectRow: function () {
+                    selectRowIndx = GetJqGridRowIndx("#" + this.id);
+                },
+                gridComplete: function () {
+                    $("#" + this.id).jqGrid('setSelection', selectRowIndx);
+                }
+            });
+            columnModelData("#gridTable");
+            hasInit = true;
+        }
+    }
+
+    //商品扫描
+    function ScanProduct(productBarCode) {
+        if (!CheckDataValid('#form1')) {
+            return false;
+        }
+
+        var isSuccess = false;
+        //获取列表数据
+        var rowDatas = $("#gridTable").jqGrid('getRowData');
+        var i;
+        var rowData;
+        for (i = 0; i < rowDatas.length; i++) {
+            rowData = rowDatas[i];
+            if (rowData.BarCode === productBarCode) {
+                isSuccess = true;
+                if (rowData.Qty < (parseInt(rowData.QtyScaned) + 1)) {
+                    alertDialog('注意：商品数量已超过实际订购量', -1);
+                    $('#errorAudio')[0].play();
+                    return false;
+                }
+
+                rowData.QtyScaned = parseInt(rowData.QtyScaned) + 1;
+                $("#gridTable").setCell((i + 1), 'QtyScaned', rowData.QtyScaned);
+                if (rowData.Qty === rowData.QtyScaned) {
+                    $("#" + (i + 1) + " td").css("background-color", "green").css("color", "white");
+                } else if (rowData.Qty > rowData.QtyScaned) {
+                    $("#" + (i + 1) + " td").css("background-color", "lightyellow").css("color", "black");
+                } else {
+                    $("#" + (i + 1) + " td").css("background-color", "red").css("color", "white");
+                }
+            }
+        }
+
+        if (isSuccess === false) {
+            tipDialog('注意：该商品不属于该订单', 3, 'warning');
+            $('#errorAudio')[0].play();
+            $("#ProductCode").select();
+        } else {
+            $('#notifyAudio')[0].play();
+            $("#ProductCode").val("");
+        }
+
+        var isFinished = true;
+        for (i = 0; i < rowDatas.length; i++) {
+            rowData = rowDatas[i];
+            if (rowData.Qty > rowData.QtyScaned) {
+                isFinished = false;
+            }
+        }
+
+        if (isFinished) {
+            var orderNo = $("#OrderNo").val();
+            if (orderNo !== '') {
+                window.setTimeout(function () {
+                    Loading(true, "该订单扫描结束...");
+                    AjaxJson("/OutStockModule/Outbound/ScanFinished", { billNo: orderNo },
+                        function (data) {
+                            if (data.Message !== "") {
+                                tipDialog(data.Message, 2, 'warning');
+                                return;
+                            }
+                            $("#OrderNo").removeAttr("disabled");
+                            $("#OrderNo").val("");
+                            $("#OrderNo").focus();
+                            $("#gridTable").jqGrid("clearGridData");
+                        });
+                    return true;
+                }, 200);
+            } else {
+                tipDialog('请扫描订单号和商品条码', 4, 'warning');
+                $('#errorAudio')[0].play();
+                return false;
+            }
+        }
+        return true;
+    }
+
+    $(function () {
+        if ($.browser.msie && ($.browser.version === '8.0' || $.browser.version === '9.0')) {
+            $('<embed id="notifyAudio" autostart="false" volume="100" hidden="true" src="../../Content/Audio/notify.wav" type="audio/wav"/>').appendTo('body');
+            $('<embed id="errorAudio" autostart="false" volume="100" hidden="true" src="../../Content/Audio/error.wav" type="audio/wav"/>').appendTo('body');
+        } else {
+            $('<audio id="notifyAudio">' +
+               '<source src="../../Content/Audio/notify.ogg" type="audio/ogg">' +
+               '<source src="../../Content/Audio/notify.mp3" type="audio/mpeg">' +
+               '<source src="../../Content/Audio/notify.wav" type="audio/wav">' +
+               '</audio>').appendTo('body');
+
+            $('<audio id="errorAudio">' +
+               '<source src="../../Content/Audio/error.wav" type="audio/wav">' +
+               '</audio>').appendTo('body');
+        }
+    });
+
+</script>
+<form id="form1">
+    <div class="tools_bar leftline rightline" style="margin-bottom: 0px; margin: 1px;">
+        <div class="PartialButton">
+            @Html.Partial("_PartialButton")
+        </div>
+    </div>
+    <div class="note-prompt" style="margin: 1px;">
+        注意事项：............
+    </div>
+    <div class="border" style="margin: 1px;">
+        <div class="QueryArea">
+            <table class="form-find" style="height: 45px;">
+                <tr>
+                    <th>扫描物流单号/订单号：</th>
+                    <td>
+                        <input id="OrderNo" type="text" datacol="yes" class="txt" style="width: 140px" err="快递单货/出库单号" checkexpession="NotNull" />
+                    </td>
+                    <th>扫描商品条码：</th>
+                    <td>
+                        <input id="ProductCode" type="text" datacol="yes" class="txt" style="width: 140px" err="商品条码" checkexpession="NotNull" />
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </div>
+    <div id="grid_List" class="topline">
+        <table id="gridTable"></table>
+    </div>
+</form>

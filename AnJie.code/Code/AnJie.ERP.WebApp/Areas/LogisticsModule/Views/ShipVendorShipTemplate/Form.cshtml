@@ -1,0 +1,156 @@
+﻿@{
+    ViewBag.Title = "配送商管理 》运费模板管理";
+    Layout = "~/Views/Shared/_LayoutForm.cshtml";
+}
+<script type="text/javascript">
+    $(function () {
+        BindCombobox();
+        InitControl();
+    })
+
+    //得到一个对象实体
+    function InitControl() {
+        if (!!GetQuery('KeyValue')) {
+            AjaxJson("/LogisticsModule/ShipVendorShipTemplate/SetForm", { KeyValue: GetQuery('KeyValue') }, function (data) {
+                SetWebControls(data);
+                BindWarehouseId();
+                $("#WarehouseId").val(data.WarehouseId);
+            });
+        } else {
+            //显示顺序
+            AjaxJson("/LogisticsModule/ShipVendorShipTemplate/SortCode", {}, function (Data) {
+                $("#SortCode").val(Data);
+            })
+            $("#ShipVendorId").val(GetQuery('ShipVendorId'));
+            BindWarehouseId();
+            $("#WarehouseId").val(GetQuery('WarehouseId'));
+        }
+    }
+
+    //初始化绑定下拉框
+    function BindCombobox() {
+        //所属配送商
+        $("#ShipVendorId").append("<option value=''>--请选择--</option>");
+        //发货仓库
+        $("#WarehouseId").append("<option value=''>--请选择--</option>");
+        //物流方式
+        $("#ShipTypeId").append("<option value=''>--请选择--</option>");
+
+        AjaxJson("/LogisticsModule/ShipVendor/ListJson", {}, function (DataJson) {
+            $.each(DataJson, function (i) {
+                $("#ShipVendorId").append($("<option></option>").val(DataJson[i].ShipVendorId).html(DataJson[i].FullName));
+            });
+        })
+
+        AjaxJson("/BaseModule/ShipType/ListJson", {}, function (DataJson) {
+            $.each(DataJson, function (i) {
+                $("#ShipTypeId").append($("<option></option>").val(DataJson[i].ShipTypeId).html(DataJson[i].ShipTypeName));
+            });
+        })
+
+        //所在市
+        $("#ShipVendorId").change(function () {
+            BindWarehouseId();
+        });
+    }
+
+    //配送商发货仓库
+    function BindWarehouseId() {
+        $("#WarehouseId").html("");
+        $("#WarehouseId").append("<option value=''>--请选择--</option>");
+        AjaxJson("/BaseModule/Warehouse/GetList", { ParentId: $("#ShipVendorId").val() }, function (DataJson) {
+            $.each(DataJson, function (i) {
+                $("#WarehouseId").append($("<option></option>").val(DataJson[i].WarehouseId).html(DataJson[i].WarehouseName));
+            });
+        })
+    }
+
+    //保存事件
+    function AcceptClick() {
+        if (!CheckDataValid('#form1')) {
+            return false;
+        }
+        Loading(true, "正在提交数据...");
+        window.setTimeout(function () {
+            var postData = GetWebControls("#form1");
+            AjaxJson("/LogisticsModule/ShipVendorShipTemplate/SubmitForm?KeyValue=" + GetQuery('KeyValue'), postData, function (data) {
+                tipDialog(data.Message, 3, data.Code);
+                top.frames[tabiframeId()].windowload();
+                closeDialog();
+            });
+        }, 200);
+    }
+</script>
+<form id="form1" style="margin: 1px">
+    <div id="message" style="display: none"></div>
+    <table class="form">
+        <tr>
+            <th class="formTitle">所属配送商：</th>
+            <td class="formValue">
+                <select id="ShipVendorId" class="txtselect" datacol="yes" err="所属配送商" checkexpession="NotNull"></select>
+            </td>
+            <th class="formTitle">发货仓库：</th>
+            <td class="formValue">
+                <select id="WarehouseId" class="txtselect" datacol="yes" err="发货仓库" checkexpession="NotNull"></select>
+            </td>
+        </tr>
+
+        <tr>
+            <th class="formTitle">
+                模板名称：
+            </th>
+            <td class="formValue">
+                <input id="TemplateName" type="text" class="txt required" datacol="yes" err="模板名称" checkexpession="NotNull" />
+            </td>
+            <th class="formTitle">物流方式：</th>
+            <td class="formValue">
+                <select id="ShipTypeId" class="txtselect" datacol="yes" err="物流方式" checkexpession="NotNull"></select>
+            </td>
+        </tr>
+        <tr>
+            <th class='formTitle'>起步重量：</th>
+            <td class='formValue'>
+                <input id="Weight" maxlength=18 type="text" class="txt required" datacol="yes" err="起步重量" checkexpession="Double" />
+            </td>
+            <th class='formTitle'>加价重量：</th>
+            <td class='formValue'>
+                <input id="AddWeight" maxlength=18 type="text" class="txt required" datacol="yes" err="加价重量" checkexpession="Double" />
+            </td>
+        </tr>
+        <tr>
+            <th class='formTitle'>默认起步价：</th>
+            <td class='formValue'>
+                <input id="Price" maxlength=18 type="text" class="txt required" datacol="yes" err="默认起步价" checkexpession="Double" />
+            </td>
+            <th class='formTitle'>默认加价：</th>
+            <td class='formValue'>
+                <input id="AddPrice" maxlength=18 type="text" class="txt required" datacol="yes" err="默认加价" checkexpession="Double" />
+            </td>
+        </tr>
+        <tr>
+            <th class="formTitle">显示顺序：</th>
+            <td class="formValue" colspan="3">
+                <input id="SortCode" type="text" onkeyup="IsNumber(this.id)" class="txt required" datacol="yes" err="显示顺序" checkexpession="Num" />
+            </td>
+        </tr>
+        <tr>
+            <th class="formTitle">选项：</th>
+            <td class="formValue" colspan="3">
+                <span class="item">
+                    <input type="checkbox" name="checkbox" checked="checked" id="Enabled" />
+                    <label for="Enabled">有效</label>
+                    <input type="checkbox" name="checkbox" checked="checked" id="IsDefault" />
+                    <label for="IsDefault">是否默认模板</label>
+                </span>
+            </td>
+        </tr>
+        <tr>
+            <th class="formTitle">
+                说明：
+            </th>
+            <td class="formValue" colspan="3">
+                <textarea id="Remark" name="Description" maxlength="200" class="txtArea" rows="6"></textarea>
+            </td>
+        </tr>
+    </table>
+</form>

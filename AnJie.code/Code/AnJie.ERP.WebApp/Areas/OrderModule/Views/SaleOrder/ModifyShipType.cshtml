@@ -1,0 +1,43 @@
+﻿@{
+    ViewBag.Title = "修改物流方式";
+    Layout = "~/Views/Shared/_LayoutForm.cshtml";
+}
+<script type="text/javascript">
+    var aryOrderNos = GetQuery('orderNos');
+    $(function () {
+        BindShipType();
+    });
+
+    //分类下拉框
+    function BindShipType() {
+        $("#ShipTypeId").html("");
+        $("#ShipTypeId").append("<option value=''>--请选择--</option>");
+        AjaxJson("/BaseModule/ShipType/ListJson", {}, function (DataJson) {
+            $.each(DataJson, function (i) {
+                $("#ShipTypeId").append($("<option></option>").val(DataJson[i].ShipTypeId).html(DataJson[i].ShipTypeName));
+            });
+        });
+    }
+
+    //保存事件
+    function AcceptClick() {
+        if (!CheckDataValid('#form1')) {
+            return false;
+        }
+        var postData = {
+            orderNos: aryOrderNos,
+            shipTypeId: $("#ShipTypeId").val()
+        }
+        AjaxJson("/OrderModule/SaleOrder/SubmitModifyShipType", postData, function (data) {
+            tipDialog(data.Message, 3, data.Code);
+            top.frames[tabiframeId()].windowload();
+            closeDialog();
+        });
+        return true;
+    }
+</script>
+<form id="form1" style="margin: 15px; margin-left: 20px; margin-right: 20px;">
+    <div>
+        <select id="ShipTypeId" class="txtselect" datacol="yes" err="物流方式" checkexpession="NotNull" style="width: 95%"></select>
+    </div>
+</form>

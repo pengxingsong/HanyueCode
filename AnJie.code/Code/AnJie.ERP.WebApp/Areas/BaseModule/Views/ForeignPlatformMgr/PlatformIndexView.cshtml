@@ -1,0 +1,155 @@
+﻿@{
+    ViewBag.Title = "平台设置";
+    Layout = "~/Views/Shared/_LayoutIndex.cshtml";
+}
+
+<script type="text/javascript">
+
+    $(function () {
+        GetGrid();
+    });
+
+ 
+
+
+    //加载表格
+    function GetGrid() {
+        $("#gridTable").jqGrid({
+            url: "@Url.Content("~/BaseModule/ForeignPlatformMgr/GridPageListJson")",
+            datatype: "json",
+            height: $(window).height() - 106,
+            autowidth: true,
+            colModel: [
+                { label: '主键', name: 'ID', hidden: true },
+                { label: "编码", name: "Code", index: "Code", width: 100 },
+                { label: "名称", name: "Name", index: "Name", width: 500 },
+                {
+                    label: '禁用/启用', name: 'IsDisabled', index: 'IsDisabled', width: 45, align: 'center',
+                    formatter: function (cellvalue, options, rowObject) {
+                        if (cellvalue) return "禁用";
+                        if (!cellvalue) return "启用";
+                        return cellvalue;
+                    }
+                },
+                { label: "创建用户", name: "CreateUserName", index: "CreateUserName", width: 100, align: 'center' },
+                {
+                    label: '创建时间', name: 'CreateDate', index: 'ModifyDate', width: 110, align: 'center',
+                    formatter: function (cellvalue, options, rowObject) {
+                        return formatDate(cellvalue, 'yyyy-MM-dd hh:mm');
+                    }
+                },
+                { label: "修改用户", name: "ModifyUserName", index: "ModifyUserName", width: 100, align: 'center' },
+                {
+                    label: '修改日期', name: 'ModifyDate', index: 'ModifyDate', width: 110, align: 'center',
+                    formatter: function (cellvalue, options, rowObject) {
+                        return formatDate(cellvalue, 'yyyy-MM-dd hh:mm');
+                    }
+                }
+            ],
+            loadonce: true,
+            viewrecords: true,
+            rowNum: 30,
+            rowList: [30, 50, 100, 500, 1000],
+            pager: "#gridPager",
+            shrinkToFit: false,
+            subGrid: false
+        });
+    }
+
+    //新增
+    function btn_add() {
+        var url = "/BaseModule/ForeignPlatformMgr/PlatformFormView";
+        openDialog(url, "Form", "三方平台设置", 500, 220, function (iframe) {
+            top.frames[iframe].AcceptClick();
+        });
+    }
+
+    //编辑
+    function btn_edit() {
+        var keyValue = GetJqGridRowValue("#gridTable", "ID");
+        if (IsChecked(keyValue)) {
+            var url = "/BaseModule/ForeignPlatformMgr/PlatformFormView?KeyValue=" + keyValue;
+            openDialog(url, "Form", "三方平台设置", 500, 220, function (iframe) {
+                top.frames[iframe].AcceptClick();
+            });
+        }
+    }
+
+    //删除
+    function btn_delete() {
+        var keyValue = GetJqGridRowValue("#gridTable", "ID");
+        if (IsSelectData(keyValue)) {
+            var delparm = 'KeyValue=' + keyValue;
+            delConfig('/BaseModule/ForeignPlatformMgr/Delete', delparm, keyValue.split(",").length);
+        }
+    }
+
+
+    //刷新
+    function windowload() {
+        Replace();
+    }
+
+    //平台api地址设置
+    function btn_PlatformAPISetting() {
+        var id = GetJqGridRowValue("#gridTable", "ID");
+        var code = GetJqGridRowValue("#gridTable", "Code");
+        var name = GetJqGridRowValue("#gridTable", "Name");
+        var paraStr = SetUrlParameter([["Code", code], ["Name", name], ["ID", id]]);
+        if (IsChecked(code)) {
+            var url = "/BaseModule/ForeignPlatformMgr/PlatformAPISettingFormView" + paraStr;
+            openDialog(url, "Form", "平台API设置", 800, 450, function (iframe) {
+                top.frames[iframe].AcceptClick();
+            });
+        }
+       
+    }
+
+    //平台商户授权设置
+    function btn_PlatformMerchantsAuth() {
+        var id = GetJqGridRowValue("#gridTable", "ID");
+        var code = GetJqGridRowValue("#gridTable", "Code");
+        var name = GetJqGridRowValue("#gridTable", "Name");
+        var paraStr = SetUrlParameter([["Code", code], ["Name", name], ["ID", id]]);
+        if (IsChecked(code)) {
+            var url = "/BaseModule/ForeignPlatformMgr/PlatformMerchantsAuthFormView" + paraStr;
+            openDialog(url, "Form", "平台商户授权设置", 800, 450, function (iframe) {
+                top.frames[iframe].AcceptClick();
+            });
+        }
+    }
+
+</script>
+
+
+<div class="tools_bar leftline rightline" style="margin: 1px; margin-bottom: 0px;">
+    <div class="PartialButton">
+        <a id="btn-replace" title="刷新当前(Ctrl+Q)" onclick="Replace()" class="tools_btn">
+            <span><b style="background: url('../../Content/Images/Icon16/arrow_refresh.png') 50% 4px no-repeat;">刷新</b></span>
+        </a>
+        <div class="tools_separator"></div>
+        <a id="btn-replace" title="新增" onclick="btn_add()" class="tools_btn">
+            <span><b style="background: url('../../Content/Images/Icon16/add.png') 50% 4px no-repeat;">新增</b></span>
+        </a>
+        <a id="btn-replace" title="编辑" onclick="btn_edit()" class="tools_btn">
+            <span><b style="background: url('../../Content/Images/Icon16/edit.gif') 50% 4px no-repeat;">编辑</b></span>
+        </a>
+        <a id="btn-replace" title="删除" onclick="btn_delete()" class="tools_btn">
+            <span><b style="background: url('../../Content/Images/Icon16/DeleteRed.png') 50% 4px no-repeat;">删除</b></span>
+        </a>
+        <div class="tools_separator"></div>
+        <a id="btn-replace" title="平台API设置" onclick="btn_PlatformAPISetting()" class="tools_btn">
+            <span><b style="background: url('../../Content/Images/Icon16/edit.gif') 50% 4px no-repeat;">平台API设置</b></span>
+        </a>
+        <a id="btn-replace" title="平台商户授权" onclick="btn_PlatformMerchantsAuth()" class="tools_btn">
+            <span><b style="background: url('../../Content/Images/Icon16/edit.gif') 50% 4px no-repeat;">平台商户授权</b></span>
+        </a>
+        <div class="tools_separator"></div>
+        <a id="btn-leave" title="关闭当前窗口(Esc)" onclick="btn_back()" class="tools_btn"><span><b style="background: url('../../Content/Images/Icon16/back.png') 50% 4px no-repeat;">离开</b></span></a>
+
+    </div>
+</div>
+<div class="topline rightline" style="margin: 1px; margin-top: -1px;">
+    <table id="gridTable"></table>
+    <div id="gridPager"></div>
+</div>

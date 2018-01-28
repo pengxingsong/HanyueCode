@@ -1,0 +1,373 @@
+﻿@{
+    ViewBag.Title = "收货单管理 》收货验收";
+    Layout = "~/Views/Shared/_LayoutIndex.cshtml";
+}
+
+<script type="text/javascript">
+    var ReceiptNo = GetQuery('ReceiptNo');
+
+    $(function () {
+        if (!ReceiptNo) {
+            btn_InputReceiptNo();
+        }
+        BindDropItem("#ReceiptType", "ReceiptType", "--请选择--");
+
+        GetGrid();
+        BindMerchant();
+        BindWarehouse();
+
+        if (!!ReceiptNo) {
+            BindForm(ReceiptNo);
+        }
+    });
+
+    //清空数据
+    function btn_InputReceiptNo() {
+        var url = "/InStockModule/Receipt/InputReceiptNo";
+        openDialogWithCancel(url, "Form", "收货验收", 300, 80, function (iframe) {
+            top.frames[iframe].AcceptClick();
+        }, function (iframe) {
+            top.frames[iframe].CaneclClick();
+        });
+    }
+
+    function BindForm(receiptNo) {
+        ReceiptNo = receiptNo;
+        //主表信息
+        AjaxJson("/InStockModule/Receipt/GetReceipt", { receiptNo: receiptNo }, function (data) {
+            SetWebControls(data);
+            if (!!data) {
+                var rowindex = 1;
+                //明细信息
+                AjaxJson("/InStockModule/Receipt/GetReceiptItemList", { ReceiptId: data.ReceiptId }, function (data) {
+                    var jsonData = data.rows;
+                    $.each(jsonData, function (i) {
+                        var rowData = jsonData[i];
+                        $("#ItemId➩" + rowindex).val(rowData.ItemId);
+                        $("#ProductId➩" + rowindex).val(rowData.ProductId);
+                        $("#Code➩" + rowindex).val(rowData.Code);
+                        $("#ProductName➩" + rowindex).val(rowData.ProductName);
+                        $("#Specification➩" + rowindex).val(rowData.Specification);
+                        $("#BaseUnit➩" + rowindex).val(rowData.BaseUnit);
+                        $("#Qty➩" + rowindex).val(rowData.Qty);
+                        $("#ReceivedQty2➩" + rowindex).val(rowData.ReceivedQty);
+                        // $("#ReceivedQty2➩" + rowindex).val(0);
+                        $("#ReceivedQty➩" + rowindex).focus();
+                        $("#gridTable tbody tr:eq(" + rowindex + ")").find('input').attr("datacol", "yes");
+                        Conversion(rowindex);
+                        rowindex++;
+                        $("#gridTable tbody tr:eq(" + rowindex + ")").find('input').removeAttr('disabled');
+                        $("#gridTable").find('.disabled').attr("disabled", "disabled");
+                      
+                    });
+                });
+            };
+        });
+    }
+
+    //订单明细换算+合计
+    function Conversion(index) {
+        var qty = $("#Qty➩" + index).val();                                //数量
+        var price = $("#Price➩" + index).val();                            //单价
+
+        //数量*单价=金额
+        $("#TotalAmount➩" + index).val(FormatCurrency(qty * price));
+
+        //统计合计
+        var totalQty = 0, totalPrice = 0.00, TotalAmount = 0.00;
+        $("#gridTable tbody tr").each(function (i) {
+            var Qty = $(this).find('td:eq(5)').find('input').val();
+            if (Qty != "" && Qty != undefined) {
+                totalQty += Number(Qty);
+            }
+            var Price = $(this).find('td:eq(6)').find('input').val();
+            if (Price != "" && Qty != undefined) {
+                totalPrice += Number(Price);
+            }
+            var TotalAmount = $(this).find('td:eq(7)').find('input').val();
+            if (TotalAmount != "" && Qty != undefined) {
+                TotalAmount += Number(TotalAmount);
+            }
+        });
+        $("#TotalQty").text(totalQty);
+        $("#TotalPrice").text(FormatCurrency(totalPrice));
+        $("#TotalAmount").text(FormatCurrency(TotalAmount));
+    };
+
+    //初始化绑定下拉框
+    function BindMerchant() {
+        //加载公司
+        $("#MerchantName").focus(function () {
+            var objId = this.id;
+            comboBoxTree(objId, "150px");
+            var itemtree = {
+                onnodeclick: function (item) {
+                    $("#MerchantId").val(item.id);
+                    $('#MerchantName').val(item.text);
+                    //加载店铺
+                    BindMerchantMall();
+                },
+                url: "@Url.Content("~/MerchantModule/Merchant/TreeJson")"
+            };
+            $("#comboBoxTree" + objId).treeview(itemtree);
+        });
+    }
+
+    //所在仓库下拉框
+    function BindWarehouse() {
+        $("#WarehouseId").html("");
+        $("#WarehouseId").append("<option value=''>--请选择--</option>");
+        AjaxJson("/BaseModule/Warehouse/GetList", {}, function (dataJson) {
+            $.each(dataJson, function (i) {
+                $("#WarehouseId").append($("<option></option>").val(dataJson[i].WarehouseId).html(dataJson[i].WarehouseName));
+            });
+        });
+    }
+
+    //分类下拉框
+    function BindMerchantMall() {
+        $("#MerchantMallId").html("");
+        $("#MerchantMallId").append("<option value=''>--请选择--</option>");
+        AjaxJson("/MerchantModule/MerchantMall/ListJson", { MerchantId: $("#MerchantId").val() }, function (dataJson) {
+            $.each(dataJson, function (i) {
+                $("#MerchantMallId").append($("<option></option>").val(dataJson[i].mallid).html(dataJson[i].mallname));
+            });
+        });
+    }
+
+    //订单明细
+    function GetGrid() {
+        $("#gridTable").jqGrid({
+            datatype: "local",
+            height: $(window).height() - 400,
+            autowidth: true,
+            colModel: [
+                { label: '商品编码[<font face="宋体">*</font>]', name: "Code", width: 100, sortable: false },
+                { label: '商品名称', name: "ProductName", width: 400, sortable: false },
+                { label: '规格型号', name: "Specification", width: 80, sortable: false, align: 'center' },
+                { label: '单位', name: "BaseUnit", width: 70, sortable: false, align: 'center' },
+                { label: '预计收货数量', name: 'Qty', width: 100, sortable: false, align: 'center' },
+                { label: '已收货数量', name: 'ReceivedQty2', width: 100, sortable: false, align: 'center' },
+                { label: '本次收货数量[<font face="宋体">*</font>]', name: 'ReceivedQty', width: 100, sortable: false, align: 'center' },
+                { label: '收货储位', name: 'LocationCode', width: 100, sortable: false },
+                { label: '说明', name: 'Description', width: 384, sortable: false },
+                { label: '商品主键', name: 'ProductId', hidden: true },
+                { label: '收货单明细主键', name: 'ItemId', hidden: true }
+            ],
+            pager: false,
+            rownumbers: true,
+            shrinkToFit: false,
+            gridview: true,
+            footerrow: true,
+            gridComplete: function () {
+                //合计
+                $(this).footerData("set", {
+                    "Code": "合计",
+                    "Qty": "<span id='TotalQty'>0</span>",
+                    "ReceivedQty2": "<span id='TotalReceivedQty2'>0</span>",
+                    "ReceivedQty": "<span id='TotalReceivedQty'>0</span>"
+                });
+            }
+        });
+
+        //表头合并
+        $("#gridTable").jqGrid('setGroupHeaders', {
+            useColSpanStyle: true,
+            groupHeaders: [
+              { startColumnName: 'Code', numberOfColumns: 4, titleText: '收货单明细' },
+              { startColumnName: 'Qty', numberOfColumns: 7, titleText: '收货信息' }
+            ]
+        });
+
+        //默认添加20行 空行
+        for (var i = 1; i < 21; i++) {
+            var rowdata = {
+                Code: '<input readonly id="Code➩' + i + '" class="editable disabled" type="text" /><input id="ProductId➩' + i + '" type="hidden" /><input id="ItemId➩' + i + '" type="hidden" />',
+                ProductName: '<input id="ProductName➩' + i + '" class="editable disabled" type="text" />',
+                Specification: '<input id="Specification➩' + i + '" class="editable disabled center" type="text" />',
+                BaseUnit: '<input id="BaseUnit➩' + i + '" class="editable disabled center" type="text" />',
+                Qty: '<input id="Qty➩' + i + '" class="editable disabled decimal center" type="text" />',
+                ReceivedQty2: '<input id="ReceivedQty2➩' + i + '" class="editable disabled decimal center" type="text" />',
+                ReceivedQty: '<input id="ReceivedQty➩' + i + '" class="editable decimal center" type="text" err="本次收货数量" checkexpession="Num" />',
+                LocationCode: '<input id="LocationCode➩' + i + '" class="editable center" type="text" err="收货储位" checkexpession="NotNull"/>',
+                Description: '<input id="Description➩' + i + '" class="editable" type="text" />'
+            }
+            $('#gridTable').jqGrid('addRowData', i, rowdata);
+        }
+
+        //金额设置居中、设置只能输入金额格式
+        $("#gridTable").find('.decimal').attr('onfocus', 'IsMoney(this.id)');
+        $("#gridTable").find('.center').css('text-align', 'center');
+        $("#gridTable").find('input').attr("disabled", "disabled");
+        $("#gridTable tbody tr:eq(1)").find('input').removeAttr('disabled').attr("datacol", "yes");
+        $("#gridTable").find('.disabled').attr("disabled", "disabled");
+        $('.jqgrid-rownum').attr('title', '双击清空一行');
+
+        //点击商品编码文本框时间，弹出选择商品信息
+        $("#gridTable tbody tr").find('td:eq(1)').find('input').click(function () {
+            if ($(this).attr('disabled') === 'disabled') {
+                return false;
+            }
+            var index = $(this).attr('id').split('➩')[1];
+            var merchantId = $("#MerchantId").val();
+            if (!!merchantId) {
+                var url = "/InStockModule/Receipt/ProductList?index=" + index + "&MerchantId=" + merchantId;
+                Dialog(url, "ItemList", "选取商品信息（双击表格添加）", 900, 400);
+            } else {
+                alertDialog("请先选择商户", 0);
+            }
+            return true;
+        });
+
+        //价格信息文本框点击事件
+        $("#gridTable").find('.decimal').click(function () {
+            $(this).select();
+        });
+    }
+
+    var array = new Array();
+    function IsExistItem(index, code) {
+        if (!ArrayExists(array, code)) {
+            array[index] = code;
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+    //订单明细换算+合计
+    function Conversion(index) {
+        var qty = $("#Qty➩" + index).val();      
+        var Price = $("#Price➩" + index).val();  
+
+        //数量*单价=金额
+        $("#TotalAmount➩" + index).val(FormatCurrency(qty * Price));
+
+        //统计合计
+        var totalQty = 0, totalPrice = 0.00, totalAmount = 0.00;
+        $("#gridTable tbody tr").each(function (i) {
+            var Qty = $(this).find('td:eq(5)').find('input').val();
+            if (Qty !== "" && Qty != undefined) {
+                totalQty += Number(Qty);
+            }
+            var price = $(this).find('td:eq(6)').find('input').val();
+            if (price !== "" && Qty != undefined) {
+                totalPrice += Number(price);
+            }
+            var TotalAmount = $(this).find('td:eq(7)').find('input').val();
+            if (TotalAmount != "" && Qty != undefined) {
+                TotalAmount += Number(TotalAmount);
+            }
+        });
+        $("#TotalQty").text(totalQty);
+        $("#TotalPrice").text(FormatCurrency(totalPrice));
+        $("#TotalAmount").text(FormatCurrency(totalAmount));
+    }
+
+    //保存事件
+    function SubmitReceiptRecord() {
+        if (!CheckDataValid('#form1')) {
+            return false;
+        }
+        confirmDialog('提示', '注：您确认要保存此次收货记录吗？', function (r) {
+            if (r) {
+                Loading(true, "正在提交数据...");
+                window.setTimeout(function () {
+                    var postData = GetWebControls("#tb_ReceiptFrom");
+                    postData["ReceiptRecordJson"] = GetTableJson("#gridTable", "Code");
+                    AjaxJson("/InStockModule/ReceiptRecord/SubmitReceiptRecord?ReceiptNo=" + ReceiptNo, postData, function (data) {
+                        tipDialog(data.Message, 3, data.Code);
+                        BindForm(ReceiptNo);
+                    });
+                }, 200);
+            }
+        });
+    }
+
+
+    //保存事件
+    function FinishedReceipt() {
+ 
+        confirmDialog('提示', '注：收货确认后将关闭收货单，不允许继续收货，是否继续？', function (r) {
+            if (r) {
+                Loading(true, "正在提交数据...");
+                window.setTimeout(function () {
+                    AjaxJson("/InStockModule/Receipt/FinishedReceipt", { receiptNo: ReceiptNo }, function (data) {
+                        tipDialog(data.Message, 3, data.Code);
+                        BindForm(ReceiptNo);
+                    });
+                }, 200);
+            }
+        });
+    };
+
+</script>
+<form id="form1">
+    <div class="leftline rightline" style="margin-left: 1px; margin-right: 1px;">
+        <div class="tools_bar" style="margin-top: 1px; margin-bottom: 0px;">
+            <a id="btn-replace" class="tools_btn" title="刷新当前(Ctrl+Q)" onclick="Replace()"><span><b style='background: url(@Url.Content("~/Content/Images/Icon16/arrow_refresh.png")) no-repeat 50% 4px;'>刷新</b></span></a>
+            <a id="button_Commit_Save" title="保存收货记录" onclick="SubmitReceiptRecord()" class="tools_btn"><span><b style="background: url(@Url.Content("~/Content/Images/Icon16/disk.png")) 50% 4px no-repeat;">收货确认</b></span></a>
+
+            <a id="button_FinishedReceipt" title="收货完成" onclick="FinishedReceipt()" class="tools_btn"><span><b style="background: url(@Url.Content("~/Content/Images/Icon16/disk.png")) 50% 4px no-repeat;">收货完成</b></span></a>
+            <div class="tools_separator"></div>
+            <a title="关闭当前窗口(Esc)" onclick="ThisCloseTab()" class="tools_btn"><span><b style="background: url(@Url.Content("~/Content/Images/Icon16/back.png")) 50% 4px no-repeat;">离开</b></span></a>
+        </div>
+        <table id="tb_ReceiptFrom" class="form-bill">
+            <tr>
+                <td align="center" colspan="9">
+                    <div style="font-family:'Microsoft YaHei'; font-size: x-large; height: 40px; line-height: 40px;">
+                        收货验收
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <th style="width: 8%; text-align: right;">收货单号：</th>
+                <td style="width: 8%; text-align: right;">
+                    <input id="ReceiptId" type="hidden" />
+                    <input id="ReceiptNo" type="text" class="txt" datacol="yes" disabled="disabled" style="width: 95%"/>
+                </td>
+                <td style="width: 5%">
+                    <input id="btnSearch" type="button" class="btnSearch" value="切 换" onclick=" btn_InputReceiptNo()" />
+                </td>
+                <th style="width: 8%; text-align: right;">收货仓库：</th>
+                <td style="width: 15%">
+                    <input id="WarehouseName" type="text" class="txt" datacol="yes" disabled="disabled" style="width: 95%" />
+                </td>
+                <th style="width: 8%; text-align: right;">所属商户：</th>
+                <td style="width: 15%">
+                    <input id="MerchantName" type="text" class="txt" datacol="yes" disabled="disabled" style="width: 95%" />
+                </td>
+                <th style="width: 8%; text-align: right;">收货类型：</th>
+                <td>
+                    <select id="ReceiptType" class="txtselect required" datacol="yes" disabled="disabled"></select>
+                </td>
+            </tr>
+        </table>
+        <div id="grid_List">
+            <table id="gridTable"></table>
+            <style>
+                .ui-widget-content {
+                    border-left: none;
+                }
+
+                .ui-jqgrid tr.ui-row-ltr td {
+                    padding: 0px;
+                    border-bottom: 1px solid #ccc;
+                }
+
+                .ui-jqgrid .ui-jqgrid-htable th {
+                    line-height: 15px;
+                }
+
+                    .ui-th-column, .ui-jqgrid .ui-jqgrid-htable th.ui-th-column {
+                        background: none;
+                    }
+
+                .editable {
+                    height: 22px;
+                    background-color: #fff;
+                }
+            </style>
+        </div>
+    </div>
+</form>

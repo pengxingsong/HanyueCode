@@ -1,0 +1,160 @@
+﻿@{
+    ViewBag.Title = "面单模板管理";
+    Layout = "~/Views/Shared/_LayoutIndex.cshtml";
+}
+<script type="text/javascript">
+    $(document).ready(function () {
+        GetTree();
+        GetGrid("");
+    });
+
+    var ShipTypeId, ShipTypeName = "";
+    //加载左边树
+    function GetTree() {
+        var itemtree = {
+            onnodeclick: function (item) {
+                ShipTypeId = item.id;            //ID
+                if (ShipTypeId === '1') {
+                    ShipTypeId = '';
+                }
+                ShipTypeName = item.text;        //名称
+                $("#CenterTitle").html(" - " + ShipTypeName);
+                $("#gridTable").jqGrid('setGridParam', { url: "@Url.Content("~/BaseModule/ShipTypeTemplate/GridListJson")?ShipTypeId=" + ShipTypeId }).trigger('reloadGrid');
+            },
+            url: "@Url.Content("~/BaseModule/ShipType/TreeJson")"
+        };
+        $("#ItemsTree").treeview(itemtree);
+    }
+
+    //加载表格
+    function GetGrid(shipTypeId) {
+        $("#gridTable").jqGrid({
+            url: "@Url.Content("~/BaseModule/ShipTypeTemplate/GridListJson")",
+            datatype: "json",
+            height: $(window).height() - 105,
+            autowidth: true,
+            colModel: [
+                { label: '所属物流方式', name: 'ShipTypeId', index: 'ShipTypeId', hidden: true },
+                { label: '物流方式', name: 'ShipTypeName', index: "ShipTypeName", width: 100 },
+                { label: '模板Id', name: 'TemplateId', index: "TemplateId", hidden: true },
+                { label: '模板名称', name: 'TemplateName', index: "TemplateName", width: 130 },
+                { label: '背景图片', name: 'BackgroundImage', index: "BackgroundImage", width: 400 },
+                { label: '宽度(mm)', name: 'Width', index: 'Width', width: 60 },
+                { label: '高度(mm)', name: 'Height', index: 'Height', width: 60 },
+                {
+                    label: '电子面单', name: 'IsElectronicBill', index: 'IsElectronicBill', width: 60, align: 'center',
+                    formatter: function (cellvalue, options, rowObject) {
+                        if (cellvalue === 1) return "<img src='../../Content/Images/checkokmark.gif'/>";
+                        if (cellvalue === 0) return "<img src='../../Content/Images/checknomark.gif'/>";
+                        return cellvalue;
+                    }
+                },
+                {
+                    label: '有效', name: 'Enabled', index: 'Enabled', width: 45, align: 'center',
+                    formatter: function (cellvalue, options, rowObject) {
+                        if (cellvalue === 1) return "<img src='../../Content/Images/checkokmark.gif'/>";
+                        if (cellvalue === 0) return "<img src='../../Content/Images/checknomark.gif'/>";
+                        return cellvalue;
+                    }
+                },
+                { label: '说明', name: 'Remark', index: "Remark", width: 300 }
+            ],
+            pager: false,
+            rowNum: 1000,
+            sortname: 'SortCode',
+            sortorder: 'asc',
+            rownumbers: true,
+            shrinkToFit: false,
+            gridview: true
+        });
+        columnModelData("#gridTable");
+    }
+
+    //新增
+    function btn_add() {
+        if (!!ShipTypeId) {
+            var url = "/BaseModule/ShipTypeTemplate/Form?ShipTypeId=" + ShipTypeId;
+            openDialog(url, "Form", "新增面单模板", 450, 260, function (iframe) {
+                top.frames[iframe].AcceptClick();
+            });
+        } else {
+            alertDialog("请选择左边物流方式", 0);
+        }
+    }
+
+    //编辑
+    function btn_edit() {
+        var keyValue = GetJqGridRowValue("#gridTable", "TemplateId");
+        if (IsChecked(keyValue)) {
+            var url = "/BaseModule/ShipTypeTemplate/Form?KeyValue=" + keyValue;
+            openDialog(url, "Form", "编辑面单模板", 450, 260, function (iframe) {
+                top.frames[iframe].AcceptClick();
+            });
+        }
+    }
+
+    //上传背景图
+    function btn_UploadImage() {
+        var keyValue = GetJqGridRowValue("#gridTable", "TemplateId");
+        if (IsChecked(keyValue)) {
+            var url = "/BaseModule/ShipTypeTemplate/UploadImage?TemplateId=" + keyValue;
+            Dialog(url, "UploadImage", "上传模板背景图", 500, 350, function (iframe) {
+                top.frames[iframe].AcceptClick();
+            });
+        }
+    }
+
+    //模板设计
+    function btn_Design() {
+        var keyValue = GetJqGridRowValue("#gridTable", "TemplateId");
+        if (IsChecked(keyValue)) {
+            var url = "/BaseModule/ShipTypeTemplate/Design?TemplateId=" + keyValue;
+            openDialog(url, "Design", "模板设计", 1100, 640, function (iframe) {
+                top.frames[iframe].AcceptClick();
+            });
+        }
+    }
+
+    //打印预览
+    function btn_Preview() {
+        var keyValue = GetJqGridRowValue("#gridTable", "TemplateId");
+        if (IsChecked(keyValue)) {
+            var url = "/BaseModule/ShipTypeTemplate/Preview?TemplateId=" + keyValue;
+            openDialog(url, "Preview", "打印预览", 1100, 640, function (iframe) {
+                top.frames[iframe].AcceptClick();
+            });
+        }
+    }
+
+    //刷新
+    function windowload() {
+        $("#gridTable").trigger("reloadGrid"); //重新载入
+    }
+
+
+</script>
+<div id="layout" class="layout">
+    <!--左边-->
+    <div class="layoutPanel layout-west">
+        <div class="btnbartitle">
+            <div>
+                物流方式
+            </div>
+        </div>
+        <div class="ScrollBar" id="ItemsTree"></div>
+    </div>
+    <!--中间-->
+    <div class="layoutPanel layout-center">
+        <div class="btnbartitle">
+            <div>
+                面单模板<span id="CenterTitle"></span>
+            </div>
+        </div>
+        <div class="tools_bar" style="border-top: none; margin-bottom: 0px;">
+            <div class="PartialButton">
+                @Html.Partial("_PartialButton")
+            </div>
+        </div>
+        <table id="gridTable"></table>
+    </div>
+</div>

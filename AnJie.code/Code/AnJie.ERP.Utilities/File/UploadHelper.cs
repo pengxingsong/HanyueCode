@@ -1,0 +1,55 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+using System.Web.UI.WebControls;
+using System.IO;
+using System.Web;
+
+namespace AnJie.ERP.Utilities
+{
+    /// <summary>
+    /// 文件上传帮助类
+    /// </summary>
+    public class UploadHelper
+    {
+        /// <summary>
+        /// 文件上传
+        /// </summary>
+        /// <param name="file">单独文件的访问</param>
+        /// <param name="path">存储路径</param>
+        /// <param name="filename">输出文件名</param>
+        /// <param name="errMessage">异常信息</param>
+        /// <returns></returns>
+        public static bool FileUpload(HttpPostedFileBase file, string path, string FileName, out string errMessage)
+        {
+            errMessage = string.Empty;
+            if (Directory.Exists(path) == false)//如果不存在就创建file文件夹
+            {
+                Directory.CreateDirectory(path);
+            }
+            //取得文件的扩展名,并转换成小写
+            string Extension = System.IO.Path.GetExtension(file.FileName).ToLower();
+            //取得文件大小
+            string filesize = SizeHelper.CountSize(file.ContentLength);
+            try
+            {
+                int Size = file.ContentLength / 1024 / 1024;
+                if (Size > 10)
+                {
+                    errMessage = "你上传的文件太大";
+                    return false;
+                }
+                else
+                {
+                    file.SaveAs(path + FileName);
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                errMessage = ex.Message;
+                return false;
+            }
+        }
+    }
+}

@@ -1,0 +1,434 @@
+﻿@{
+    ViewBag.Title = "商品管理 》表单页面";
+    Layout = "~/Views/Shared/_LayoutIndex.cshtml";
+}
+<script type="text/javascript">
+    $(function () {
+        BindCategory();
+        BindMerchant();
+        BindWarehouse();
+        BindZone();
+        BindLocation();
+        GetLocationGrid();
+        InitControl();
+        if (!!GetQuery('CategoryId')) {
+            $("#CategoryId").val(GetQuery('CategoryId'));
+        }
+    });
+
+    //分类下拉框
+    function BindCategory() {
+        $("#CategoryId").html(""); 
+        $("#CategoryId").append("<option value=''>--请选择--</option>");
+        AjaxJson("/ProductModule/ProductCategory/ListJson",
+            null,
+            function(dataJson) {
+                $.each(dataJson,
+                    function(i) {
+                        $("#CategoryId")
+                            .append($("<option></option>").val(dataJson[i].categoryid).html(dataJson[i].categoryname));
+                    });
+            });
+    }
+
+    //商户下拉框
+    function BindMerchant() {
+        $("#MerchantId").html("");
+        $("#MerchantId").append("<option value=''>--请选择--</option>");
+        if (!!GetQuery('KeyValue')) {
+            AjaxJson("/ProductModule/Product/MerchantListJson",
+                    { productId: GetQuery('KeyValue') },
+                    function (dataJson) {
+                        $.each(dataJson,
+                            function (i) {
+                                $("#MerchantId")
+                                    .append($("<option></option>").val(dataJson[i].merchantid).html(dataJson[i].merchantcode + "-" + dataJson[i].merchantname));
+                            });
+                    });
+        }
+
+        $("#MerchantId").change(function () {
+            BindWarehouse();
+            BindZone();
+            BindLocation();
+        });
+
+    }
+
+    //仓库下拉框
+    function BindWarehouse() {
+        $("#WarehouseId").html("");
+        $("#WarehouseId").append("<option value=''>--请选择--</option>");
+        if ($("#MerchantId").val() != "") {
+            AjaxJson("/ProductModule/Product/WarehouseListJson",
+                    {
+                        productId: GetQuery('KeyValue'),
+                        merchantId: $("#MerchantId").val()
+                    },
+                    function (dataJson) {
+                        $.each(dataJson,
+                            function (i) {
+                                $("#WarehouseId")
+                                    .append($("<option></option>").val(dataJson[i].warehouseid).html(dataJson[i].warehousecode + "-" + dataJson[i].warehousename));
+                            });
+                    });            
+        }
+
+        $("#WarehouseId").change(function () {
+            BindZone();
+            BindLocation();
+        });
+    }
+
+    //库位下拉框
+    function BindZone() {
+        $("#ZoneId").html("");
+        $("#ZoneId").append("<option value=''>--请选择--</option>");
+        if ($("#MerchantId").val() != "") {
+            AjaxJson("/ProductModule/Product/ZoneListJson",
+                    {
+                        productId: GetQuery('KeyValue'),
+                        merchantId: $("#MerchantId").val(),
+                        warehouseId: $("#WarehouseId").val()
+                    },
+                    function (dataJson) {
+                        $.each(dataJson,
+                            function (i) {
+                                $("#ZoneId")
+                                    .append($("<option></option>").val(dataJson[i].zoneid).html(dataJson[i].zonetypename + "-" + dataJson[i].zonecode + "-" + dataJson[i].zonename));
+                            });
+                    });
+        }
+
+        $("#ZoneId").change(function () {
+            BindLocation();
+        });
+    }
+
+    //储位下拉框
+    function BindLocation() {
+        $("#LocationId").html("");
+        $("#LocationId").append("<option value=''>--请选择--</option>");
+        if ($("#ZoneId").val() != "") {
+            AjaxJson("/ProductModule/Product/LocationListJson",
+                    {
+                        productId: GetQuery('KeyValue'),
+                        merchantId: $("#MerchantId").val(),
+                        warehouseId: $("#WarehouseId").val(),
+                        zoneId: $("#ZoneId").val()
+                    },
+                    function (dataJson) {
+                        $.each(dataJson,
+                            function (i) {
+                                $("#LocationId")
+                                    .append($("<option></option>").val(dataJson[i].locationid).html(dataJson[i].code));
+                            });
+                    });
+        }
+    }
+
+    //搜索
+    function btn_LocationSearch() {
+        var merchantId = $("#MerchantId").val();
+        var warehouseId = $("#WarehouseId").val();
+        var zoneId = $("#ZoneId").val();
+        var locationId = $("#LocationId").val();
+        $("#gridLocationTable").jqGrid('setGridParam', {
+            url: "@Url.Content("~/ProductModule/Product/GetProductLocationPageList")?productId=" + GetQuery('KeyValue') + "&merchantId=" + merchantId + "&warehouseId=" + warehouseId + "&zoneId=" + zoneId + "&locationId=" + locationId, page: 1
+        }).trigger('reloadGrid');
+    }
+
+    //加载表格
+    function GetLocationGrid() {
+        $("#gridLocationTable").jqGrid({
+            url: "@Url.Content("~/ProductModule/Product/GetProductLocationPageList")",
+            datatype: "json",
+            height: $(window).height() - 178,
+            autowidth: true,
+            colModel: [
+                {
+                    label: '删除', name: 'productlocationid', index: 'productlocationid', width: 30, align: 'center',
+                    formatter: function (cellvalue, options, rowObject) {
+                        return "<a id='Delete' href='#' style='color:#f60' onclick=\"DeleteRow('" + cellvalue + "')\">删除</a>";
+                    }
+                },
+                { label: '商户', name: 'merchantname', index: 'merchantname', width: 140, align: 'left' },
+                { label: '仓库', name: 'warehousename', index: 'warehousename', width: 140, align: 'left' },
+                { label: '库位', name: 'zonename', index: 'zonename', width: 140, align: 'left' },
+                { label: '储位', name: 'code', index: 'code', width: 140, align: 'left' }
+            ],
+            rowNum: 30,
+            rowList: [30, 50, 100, 500, 1000],
+            pager: "#gridLocationPager",
+            sortname: 'CreateDate',
+            sortorder: 'desc',
+            rownumbers: true,
+            shrinkToFit: false,
+            gridview: true
+        });
+        columnModelData("#gridLocationTable");
+        //自应高度
+        $(window).resize(function () {
+            $("#gridLocationTable").setGridHeight($(window).height() - 178);
+        });
+    }
+
+    //得到一个对象实体
+    function InitControl() {
+        if (!!GetQuery('KeyValue')) {
+            AjaxJson("/ProductModule/Product/SetProductForm", { KeyValue: GetQuery('KeyValue') }, function (data) {
+                SetWebControls(data);
+                $("#CategoryId").val(data.CategoryId);
+            });
+            $("#TabCustomAttribute").show();
+            btn_LocationSearch();
+        }
+    }
+
+    //保存事件
+    function AcceptClick() {
+        if (!CheckDataValid('#form1')) {
+            return false;
+        }
+        Loading(true, "正在提交数据...");
+        window.setTimeout(function () {
+            var postData = GetWebControls("#form1");
+            postData["BuildFormJson"] = JSON.stringify(GetWebControls("#CustomAttribute"));
+            AjaxJson("/ProductModule/Product/SubmitProductForm?KeyValue=" + GetQuery('KeyValue'), postData, function (data) {
+                tipDialog(data.Message, 3, data.Code);
+                top.frames[tabiframeId()].windowload();
+                closeDialog();
+            });
+        }, 200);
+        return true;
+    }
+
+    function DeleteRow(productlocationid) {
+
+        confirmDialog('提示',
+            '注：您确认要删除此操作吗？',
+            function (r) {
+                if (r) {
+                    Loading(true, "正在提交数据...");
+                    window.setTimeout(function () {
+                        AjaxJson("/ProductModule/Product/DeleteLocation",
+                            {
+                                productlocationid: productlocationid
+                            },
+                            function (data) {
+                                if (data.Success) {
+                                    tipDialog(data.Message, 3, 1);
+                                    btn_LocationSearch();
+                                }
+                            });
+                    },
+                        200);
+                }
+            });
+        return true;
+    }
+
+    function btn_LocationAdd() {
+        var productId = GetQuery('KeyValue');
+        var merchantId = $("#MerchantId").val();
+        if (merchantId == "") {
+            tipDialog("请选择商户", 2, 'warning');
+            $("#MerchantId").focus();
+            $("#MerchantId").select();
+            return false;
+        }
+        var warehouseId = $("#WarehouseId").val();
+        if (warehouseId == "") {
+            tipDialog("请选择仓库", 2, 'warning');
+            $("#WarehouseId").focus();
+            $("#WarehouseId").select();
+            return false;
+        }
+        var zoneId = $("#ZoneId").val();
+        if (zoneId == "") {
+            tipDialog("请选择库区", 2, 'warning');
+            $("#ZoneId").focus();
+            $("#ZoneId").select();
+            return false;
+        }
+        var locationId = $("#LocationId").val();
+        if (locationId == "") {
+            tipDialog("请选择储位", 2, 'warning');
+            $("#LocationId").focus();
+            $("#LocationId").select();
+            return false;
+        }
+        var postData = { productId: productId, merchantId: merchantId, warehouseId: warehouseId, zoneId: zoneId, locationId: locationId };
+        AjaxJson("/ProductModule/Product/SaveAddLocation",
+            postData,
+            function (data) {
+                if (data.Success) {
+                    tipDialog("新增成功", 3, 1);
+                    BindMerchant();
+                    BindWarehouse();
+                    BindZone();
+                    BindLocation();
+                    btn_LocationSearch();
+                }
+            });
+    }
+</script>
+<form id="form1">
+    <div id="message" style="display: none; padding: 1px; padding-bottom: 0px;"></div>
+    <div class="bd" style="border-bottom: none; margin: 1px;">
+        <div class="tipstitle_title settingtable bold bd todayInfoPanelTab rightPanelTitle_normal">
+            <div class="tab_list_top" style="position: absolute">
+                <div id="Tabbasic" class="tab_list bd actived" onclick="Tabchange('basic')">基本信息</div>
+                <div id="TabCustomAttribute" class="tab_list bd " onclick="Tabchange('CustomAttribute')" style="display:none;">默认储位配置</div>
+            </div>
+        </div>
+    </div>
+    <div class="ScrollBar" style="margin: 1px; overflow: hidden;">
+        <!--基本信息-->
+        <div id="basic" class="tabPanel">
+            <table class="form">
+                <tr>
+                    <th class="formTitle">商品分类：</th>
+                    <td class="formValue" colspan="3">
+                        <select id="CategoryId" class="txtselect" datacol="yes"></select>
+                    </td>
+                </tr>
+                <tr>
+                    <th class='formTitle'>商品名称：</th>
+                    <td class='formValue' colspan="3">
+                        <input id="ProductName" maxlength=200 type="text" class="txt required" err="商品名称" datacol="yes" checkexpession="NotNull" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <th class='formTitle'>商品简称：</th>
+                    <td class='formValue' colspan="3">
+                        <input id="BriefName" maxlength=50 type="text" class="txt" />
+                    </td>
+                </tr>
+                <tr>
+                    <th class='formTitle'>商品编码：</th>
+                    <td class='formValue'>
+                        <input id="Code" onblur="FieldExist(this.id, 'Product', 'Code', '商品编码')" type="text" class="txt required" datacol="yes" err="商品编码" checkexpession="NotNull" />
+                    </td>
+                    <th class='formTitle'>商品条码：</th>
+                    <td class='formValue'>
+                        <input id="BarCode" maxlength=36 type="text" class="txt" />
+                    </td>
+                </tr>
+                <tr>
+                    <th class='formTitle'>规格：</th>
+                    <td class='formValue'>
+                        <input id="Specification" maxlength=36 type="text" class="txt" />
+                    </td>
+                    <th class='formTitle'>品牌：</th>
+                    <td class='formValue'>
+                        <input id="Brand" maxlength=36 type="text" class="txt" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <th class='formTitle'>基本单位：</th>
+                    <td class='formValue'>
+                        <input id="BaseUnit" maxlength=36 type="text" class="txt required" datacol="yes" err="基本单位" checkexpession="NotNull" />
+                    </td>
+
+                    <th class='formTitle'>重量(Kg)：</th>
+                    <td class='formValue'>
+                        <input id="Weight" maxlength=18 type="text" class="txt required" datacol="yes" err="重量" checkexpession="Double" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <th class='formTitle'>体积(m³)：</th>
+                    <td class='formValue'>
+                        <input id="Volume" maxlength=18 type="text" class="txt required" datacol="yes" err="体积" checkexpession="Double" />
+                    </td>
+                    <th class='formTitle'>长(CM)：</th>
+                    <td class='formValue'>
+                        <input id="Long" maxlength=10 type="text" class="txt" />
+                    </td>
+
+                </tr>
+                <tr>
+                    <th class='formTitle'>宽(CM)：</th>
+                    <td class='formValue'>
+                        <input id="Width" maxlength=10 type="text" class="txt" />
+                    </td>
+                    <th class='formTitle'>高(CM)：</th>
+                    <td class='formValue'>
+                        <input id="Height" maxlength=10 type="text" class="txt" />
+                    </td>
+                </tr>
+                <tr>
+                    <th class='formTitle'>选项：</th>
+                    <td class='formValue' colspan="3">
+                        <input id="IsLotControl" name="IsLotControl" type="checkbox" checked="checked" style="vertical-align: middle;" />
+                        <label for="IsLotControl" style="vertical-align: middle;">批号管控</label>
+                        <input id="IsForcedScan" name="IsForcedScan" type="checkbox" checked="checked" style="vertical-align: middle;" />
+                        <label for="IsForcedScan" style="vertical-align: middle;">是否强制扫描</label>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="formTitle"></th>
+                    <td class="formValue" colspan="3">
+                        <span class="item">
+                            <input id="Enabled" name="Enabled" type="checkbox" checked="checked" style="vertical-align: middle;" />
+                            <label for="Enabled" style="vertical-align: middle;">有效</label>
+                        </span>
+                        <label style="vertical-align: middle; color: red;">注意：禁用该商品后，将不能创建含有该商品的订单。</label>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="formTitle">
+                        说明：
+                    </th>
+                    <td class="formValue" colspan="3">
+                        <textarea id="Remark" class="txtArea" rows="6"></textarea>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <!--自定义属性-->
+        <div id="CustomAttribute" class="tabPanel" style="display: none;">
+            <table class="form">
+                <tr>
+                    <th class="formTitle">商户：</th>
+                    <td class="formValue">
+                        <select id="MerchantId" class="txtselect"></select>
+                    </td>
+                    <th class="formTitle">仓库：</th>
+                    <td class="formValue">
+                        <select id="WarehouseId" class="txtselect"></select>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="formTitle">库位：</th>
+                    <td class="formValue">
+                        <select id="ZoneId" class="txtselect"></select>
+                    </td>
+                    <th class="formTitle">储位：</th>
+                    <td class="formValue">
+                        <select id="LocationId" class="txtselect"></select>
+                    </td>
+                </tr>
+            </table>
+            <table style="margin-bottom:5px;">
+                <tr>
+                    <td>
+                        <input id="btnLocationSearch" type="button" class="btnSearch" value="搜 索" onclick="btn_LocationSearch()" />
+                        &nbsp;&nbsp;&nbsp;&nbsp;
+                        <input id="btnLocationAdd" type="button" class="btnSearch" value="新 增" onclick="btn_LocationAdd()" />
+                    </td>
+                </tr>
+            </table>
+            <!--列表-->
+            <div id="grid_List">
+                <table id="gridLocationTable"></table>
+                <div id="gridLocationPager"></div>
+            </div>
+        </div>
+    </div>
+
+</form>

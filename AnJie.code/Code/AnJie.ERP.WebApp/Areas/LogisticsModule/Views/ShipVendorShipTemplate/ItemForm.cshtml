@@ -1,0 +1,123 @@
+﻿@{
+    ViewBag.Title = "配送商管理 》运费模板管理";
+    Layout = "~/Views/Shared/_LayoutForm.cshtml";
+}
+<script type="text/javascript">
+    $(function () {
+        BindCombobox();
+        InitControl();
+    })
+    //初始化绑定下拉框
+    function BindCombobox() {
+
+        //所在省
+        $("#ProvinceId").append("<option value=''>--请选择--</option>");
+        $("#CityId").append("<option value=''>--请选择--</option>");
+        $("#CountyId").append("<option value=''>--请选择--</option>");
+        AjaxJson("/Utility/GetProvinceCityListJson", { ParentId: 0 }, function (DataJson) {
+            $.each(DataJson, function (i) {
+                $("#ProvinceId").append($("<option></option>").val(DataJson[i].Code).html(DataJson[i].FullName));
+            });
+        })
+        //所在市
+        $("#ProvinceId").change(function () {
+            BindCityId();
+        });
+        //所在县区
+        $("#CityId").change(function () {
+            BindCountyId();
+        });
+    }
+    //所在市下拉框
+    function BindCityId() {
+        $("#CityId").html("");
+        $("#CityId").append("<option value=''>--请选择--</option>");
+        AjaxJson("/Utility/GetProvinceCityListJson", { ParentId: $("#ProvinceId").val() }, function (DataJson) {
+            $.each(DataJson, function (i) {
+                $("#CityId").append($("<option></option>").val(DataJson[i].Code).html(DataJson[i].FullName));
+            });
+        })
+    }
+    //所在县区
+    function BindCountyId() {
+        $("#CountyId").html("");
+        $("#CountyId").append("<option value=''>--请选择--</option>");
+        AjaxJson("/Utility/GetProvinceCityListJson", { ParentId: $("#CityId").val() }, function (DataJson) {
+            $.each(DataJson, function (i) {
+                $("#CountyId").append($("<option></option>").val(DataJson[i].Code).html(DataJson[i].FullName));
+            });
+        })
+    }
+
+    //得到一个对象实体
+    function InitControl() {
+        if (!!GetQuery('KeyValue')) {
+            AjaxJson("/LogisticsModule/ShipVendorShipTemplateItem/SetForm", { KeyValue: GetQuery('KeyValue') }, function (data) {
+                SetWebControls(data);
+                BindCityId();
+                $("#CityId").val(data.CityId);
+                BindCountyId();
+                $("#CountyId").val(data.CountyId);
+            });
+        } else {
+ 
+            if (!!GetQuery('TemplateId')) {
+                $("#TemplateId").val(GetQuery('TemplateId'));
+            } else {
+                alertDialog("TemplateId参数异常", 0);
+            }
+        }
+    }
+
+    //保存事件
+    function AcceptClick() {
+        if (!CheckDataValid('#form1')) {
+            return false;
+        }
+        Loading(true, "正在提交数据...");
+        window.setTimeout(function () {
+            var postData = GetWebControls("#form1");
+            AjaxJson("/LogisticsModule/ShipVendorShipTemplateItem/SubmitForm?KeyValue=" + GetQuery('KeyValue'), postData, function (data) {
+                tipDialog(data.Message, 3, data.Code);
+                top.frames[tabiframeId()].windowload();
+                closeDialog();
+            });
+        }, 200);
+    }
+</script>
+<form id="form1" style="margin: 1px">
+    <div id="message" style="display: none"></div>
+    <table class="form">
+        <tr>
+            <th class="formTitle">所在省：</th>
+            <td class="formValue">
+                <input id="TemplateId" type="hidden" />
+                <select id="ProvinceId" class="txtselect"></select>
+            </td>
+            <th class="formTitle">所在市：</th>
+            <td class="formValue">
+                <select id="CityId" class="txtselect"></select>
+            </td>
+        </tr>
+        <tr>
+            <th class="formTitle">所在县区：</th>
+            <td class="formValue">
+                <select id="CountyId" class="txtselect"></select>
+            </td>
+            <th class="formTitle"></th>
+            <td class="formValue">
+            
+            </td>
+        </tr>
+        <tr>
+            <th class='formTitle'>起步价：</th>
+            <td class='formValue'>
+                <input id="Price" maxlength=18 type="text" class="txt required" datacol="yes" err="默认起步价" checkexpession="Double" />
+            </td>
+            <th class='formTitle'>加价：</th>
+            <td class='formValue'>
+                <input id="AddPrice" maxlength=18 type="text" class="txt required" datacol="yes" err="默认加价" checkexpession="Double" />
+            </td>
+        </tr>
+    </table>
+</form>

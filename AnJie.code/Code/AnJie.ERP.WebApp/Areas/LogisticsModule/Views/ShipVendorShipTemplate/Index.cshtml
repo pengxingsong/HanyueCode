@@ -1,0 +1,220 @@
+﻿@{
+    ViewBag.Title = "配送商运费设置";
+    Layout = "~/Views/Shared/_LayoutIndex.cshtml";
+}
+<script type="text/javascript">
+    $(function () {
+        GetTree();
+        GetGrid();
+
+        //绑定键盘按下事件
+        $(document).keypress(function (e) {
+            //回车键事件
+            if (e.which == 13) {
+                $("#orderNo").focus();
+                $("#orderNo").select();
+                $("#btnSearch").click();
+            }
+        });
+    })
+
+    var ShipVendorId = "", WarehouseId = "", WarehouseName = "";
+    //加载左边树
+    function GetTree() {
+        var itemtree = {
+            onnodeclick: function (item) {
+                if (item.Type == "ShipVendor") {
+                    ShipVendorId = item.NodeId;
+                    WarehouseId = "";     //配送商ID
+                } else if (item.Type == "Warehouse") {
+                    ShipVendorId = item.parentnodes;
+                    WarehouseId = item.id;         //分类ID
+                    WarehouseName = item.text;     //分类名称
+                }
+                $("#CenterTitle").html(" - " + item.text + "(" + item.value + ")");
+                $("#gridTable").jqGrid('setGridParam', { url: "@Url.Content("~/LogisticsModule/ShipVendorShipTemplate/GridListJson")?ShipVendorId=" + ShipVendorId + "&WarehouseId=" + WarehouseId }).trigger('reloadGrid');
+            },
+            url: "@Url.Content("~/LogisticsModule/ShipVendor/GetShipVendorWarehouseTree")"
+        };
+        $("#ItemsTree").treeview(itemtree);
+    }
+
+    //加载表格
+    function GetGrid() {
+        $("#gridTable").jqGrid({
+            url: "@Url.Content("~/LogisticsModule/ShipVendorShipTemplate/GridListJson")",
+            datatype: "json",
+            height: $(window).height() - 105,
+            autowidth: true,
+            colModel: [
+                { label: '模板Id', name: 'TemplateId', index: 'TemplateId', hidden: true },
+                { label: '所属配送商', name: 'ShipVendorId', index: 'ShipVendorId', hidden: true },
+                { label: '发货仓库', name: 'WarehouseId', index: 'WarehouseId', hidden: true },
+                { label: '物流方式', name: 'ShipTypeId', index: 'ShipTypeId', hidden: true },
+                { label: '模板名称', name: 'TemplateName', index: 'TemplateName', width: 160 },
+                { label: '所属配送商', name: 'ShipVendorName', index: 'ShipVendorName', width: 140 },
+                { label: '发货仓库', name: 'WarehouseName', index: 'WarehouseName', width: 140 },
+                { label: '物流方式', name: 'ShipTypeName', index: 'ShipTypeName', width: 100 },
+                { label: '起步重量(Kg)', name: 'Weight', index: 'Weight', width: 90, align: 'center' },
+                { label: '加价重量(Kg)', name: 'AddWeight', index: 'AddWeight', width: 90, align: 'center' },
+                { label: '默认起步价(元)', name: 'Price', index: 'Price', width: 90, align: 'center' },
+                { label: '默认加价(元)', name: 'AddPrice', index: 'AddPrice', width: 90, align: 'center' },
+                {
+                    label: '有效', name: 'Enabled', index: 'Enabled', width: 45, align: 'center',
+                    formatter: function (cellvalue, options, rowObject) {
+                        if (cellvalue == '1') return "<img src='../../Content/Images/checkokmark.gif'/>";
+                        if (cellvalue == '0') return "<img src='../../Content/Images/checknomark.gif'/>";
+                    }
+                },
+                {
+                    label: '默认模板', name: 'IsDefault', index: 'IsDefault', width: 70, align: 'center',
+                    formatter: function (cellvalue, options, rowObject) {
+                        if (cellvalue == '1') return "<img src='../../Content/Images/checkokmark.gif'/>";
+                        if (cellvalue == '0') return "<img src='../../Content/Images/checknomark.gif'/>";
+                    }
+                }
+            ],
+            viewrecords: true,
+            pager: false,
+            rowNum: 1000,
+            sortname: 'SortCode',
+            sortorder: 'asc',
+            rownumbers: true,
+            shrinkToFit: false,
+            gridview: true,
+            subGrid: true,
+            subGridRowExpanded: function (subgrid_id, row_id) {
+                var TemplateId = GetJqGridValue("#gridTable", row_id, "TemplateId");
+                var subgrid_table_id = subgrid_id + "_t";
+                $("#" + subgrid_id).html("<table id='" + subgrid_table_id + "'></table>");
+                $("#" + subgrid_table_id).jqGrid({
+                    url: "@Url.Content("~/LogisticsModule/ShipVendorShipTemplate/GetTemplateItemList")?TemplateId=" + TemplateId,
+                    datatype: "json",
+                    colModel: [
+                        { label: '主键', name: 'ItemId', hidden: true },
+                        { label: '省', name: "ProvinceName", width: 100, sortable: false },
+                        { label: '市', name: "CityName", width: 100, sortable: false },
+                        { label: '区', name: "CountyName", width: 100, sortable: false },
+                        { label: '起步价', name: "Price", width: 100, sortable: false, align: 'center' },
+                        { label: '加价', name: "AddPrice", width: 100, sortable: false, align: 'center' },
+                        {
+                            label: '操作', name: 'Edit', index: 'ItemId', width: 70, align: 'center',
+                            formatter: function (cellvalue, options, rowObject) {
+                                return "<a style=\"text-decoration:underline;cursor: pointer;\" onclick=\"btn_editItem('" + rowObject.ItemId + "')\">[编辑]</a>&nbsp;&nbsp;<a style=\"text-decoration:underline;cursor: pointer;\" onclick=\"btn_delItem('" + rowObject.ItemId + "')\">[删除]</a>";
+                            }
+                        }
+                    ],
+                    rowNum: "all",
+                    ondblClickRow: function (id) {
+                        var rowData = $("#" + subgrid_table_id).getRowData(id);  //根据ID拿到一行的数据
+                        var KeyValue = rowData.ItemId;
+                        if (IsChecked(KeyValue)) {
+                            var url = "/LogisticsModule/ShipVendorShipTemplate/ItemForm?KeyValue=" + KeyValue;
+                            openDialog(url, "Form", "编辑配送商运费模板", 650, 260, function (iframe) {
+                                top.frames[iframe].AcceptClick();
+                            });
+                        }
+                    },
+
+                });
+            }
+        });
+        columnModelData("#gridTable");
+    }
+
+    //新增
+    function btn_add() {
+        if (!!ShipVendorId && !!WarehouseId) {
+            var url = "/LogisticsModule/ShipVendorShipTemplate/Form?ShipVendorId=" + ShipVendorId + "&WarehouseId=" + WarehouseId
+            openDialog(url, "Form", "新增配送商运费", 650, 260, function (iframe) {
+                top.frames[iframe].AcceptClick()
+            });
+        } else {
+            alertDialog("请选择左边配送商和仓库", 0);
+        }
+    }
+
+    //编辑
+    function btn_edit() {
+        var KeyValue = GetJqGridRowValue("#gridTable", "TemplateId");
+        if (IsChecked(KeyValue)) {
+            var url = "/LogisticsModule/ShipVendorShipTemplate/Form?KeyValue=" + KeyValue;
+            openDialog(url, "Form", "编辑配送商运费模板", 650, 260, function (iframe) {
+                top.frames[iframe].AcceptClick();
+            });
+        }
+    }
+
+    //编辑
+    function btn_editItem(itemId) {
+        if (IsChecked(itemId)) {
+            var url = "/LogisticsModule/ShipVendorShipTemplate/ItemForm?KeyValue=" + itemId;
+            openDialog(url, "Form", "编辑配送商运费模板", 650, 260, function (iframe) {
+                top.frames[iframe].AcceptClick();
+            });
+        }
+    }
+
+    //删除
+    function btn_delItem(itemId) {
+        if (IsSelectData(itemId)) {
+            var delparm = 'KeyValue=' + itemId;
+            delConfig('/LogisticsModule/ShipVendorShipTemplateItem/Delete', delparm, KeyValue.split(",").length);
+        }
+    }
+
+    //添加区域价格
+    function btn_addItem() {
+        var KeyValue = GetJqGridRowValue("#gridTable", "TemplateId");
+        if (IsChecked(KeyValue)) {
+            var url = "/LogisticsModule/ShipVendorShipTemplate/ItemForm?TemplateId=" + KeyValue;
+            openDialog(url, "Form", "添加运费模板区域价格", 650, 260, function (iframe) {
+                top.frames[iframe].AcceptClick();
+            });
+        }
+    }
+
+    //删除
+    function btn_delete() {
+        var KeyValue = GetJqGridRowValue("#gridTable", "TemplateId");
+        if (IsSelectData(KeyValue)) {
+            var delparm = 'KeyValue=' + KeyValue;
+            delConfig('/LogisticsModule/ShipVendorShipTemplate/Delete', delparm, KeyValue.split(",").length);
+        }
+    }
+
+    //刷新
+    function windowload() {
+        $("#gridTable").trigger("reloadGrid"); //重新载入
+    }
+</script>
+<div id="layout" class="layout">
+    <!--左边-->
+    <div class="layoutPanel layout-west">
+        <div class="btnbartitle">
+            <div>
+                配送商仓库
+            </div>
+        </div>
+        <div class="ScrollBar" id="ItemsTree"></div>
+    </div>
+    <!--中间-->
+    <div class="layoutPanel layout-center">
+        <div class="btnbartitle">
+            <div>
+                运费模板列表 <span id="CenterTitle"></span>
+            </div>
+        </div>
+        <div class="tools_bar" style="border-top: none; margin-bottom: 0px;">
+            <div class="PartialButton">
+                @Html.Partial("_PartialButton")
+            </div>
+        </div>
+        <table id="gridTable"></table>
+    </div>
+</div>
+<style>
+    .ui-widget-content {
+        border-left: none;
+    }
+</style>

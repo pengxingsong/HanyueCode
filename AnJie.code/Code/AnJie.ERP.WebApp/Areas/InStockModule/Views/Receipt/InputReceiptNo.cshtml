@@ -1,0 +1,33 @@
+﻿@{
+    ViewBag.Title = "收货验收 》输入收货单号";
+    Layout = "~/Views/Shared/_LayoutForm.cshtml";
+}
+<script type="text/javascript">
+    //保存事件
+    function AcceptClick() {
+        if (!CheckDataValid('#form1')) {
+            return false;
+        }
+        var postData = {
+            receiptNo: $("#ReceiptNo").val()
+        }
+        AjaxJson("/InStockModule/Receipt/GetReceipt", postData, function (data) {
+            if (!!data.ReceiptNo && (data.Status === 1 || data.Status === 2)) {
+                top.frames[tabiframeId()].BindForm(data.ReceiptNo);
+                closeDialog();
+            } else {
+                tipDialog("无效的收货单号或收货单状态不为已审核或收货中", 3, 0);
+            };
+        });
+    }
+
+    function CaneclClick() {
+        top.frames[tabiframeId()].btn_back();
+        closeDialog();
+    }
+</script>
+<form id="form1" style="margin: 30px; margin-left: 30px; margin-right: 30px;">
+    <div style="padding-bottom: 5px;">
+        收货单号： <input id="ReceiptNo" type="text" class="keyword" datacol="yes" err="收货单号" checkexpession="NotNull" />
+    </div>
+</form>

@@ -1,0 +1,93 @@
+﻿@{
+    ViewBag.Title = "打印电子面单";
+    Layout = "~/Views/Shared/_LayoutIndex.cshtml";
+}
+
+@section head{
+    @*<script src="~/Content/Scripts/LodopFuncs.js"></script>*@
+<script src="~/Content/Scripts/Lodop6.198/LodopFuncs.js"></script>
+}
+
+<script type="text/javascript">
+    var aryOrderNos = GetQuery('orderNos');
+    var shipTypeId = GetQuery('shipTypeId');
+    var shipTypeCode = GetQuery('shipTypeCode');
+    var shipTypeName = GetQuery('shipTypeName');
+    $(function () {
+        CreatePrinterList();
+        BindPageData();
+    });
+    var LODOP; //声明为全局变量
+    function CreatePrinterList() {
+        LODOP = getLodop();
+        $("#PrinterList").html("");
+        var iPrinterCount = LODOP.GET_PRINTER_COUNT();
+        for (var i = 0; i < iPrinterCount; i++) {
+            $("#PrinterList").append($("<option></option>").val(i).html(LODOP.GET_PRINTER_NAME(i)));
+        };
+    };
+
+    function BindPageData() {
+        $("#orderID").text("订单号："+aryOrderNos);
+        $("#shipTypeName").text("物流方式："+shipTypeName);
+        $("#shipTypeCode").text("( " + shipTypeCode + " )");
+    }
+
+    function GetWayBill() {
+        $.ajax({
+            url: RootPath() + "/OutStockModule/Print/GetWayBill",
+            type: "post",
+            data: { orderNo: aryOrderNos, shipTypeCode: shipTypeCode },
+            dataType: "json",
+            async: false,
+            success: function (data) {
+                $("#tempHtml").html(data.responseText);
+            },
+            error: function (data) {
+                $("#tempHtml").html(data.responseText);
+            }
+        });
+    }
+
+    function PrintWayBill() {
+        var html=$("#tempHtml").html();
+        LODOP.SET_PRINT_PAGESIZE(1, "100mm", "180mm");
+        LODOP.ADD_PRINT_HTM("0mm", "0mm", "RightMargin:0mm", "BottomMargin:0mm", html);
+        LODOP.SET_PRINTER_INDEX($("#PrinterList").val())
+        LODOP.PRINT();
+        //$("#tempHtml").printArea();
+    }
+
+    //保存事件
+    function AcceptClick() {
+        //if (!CheckDataValid('#form1')) {
+        //    return false;
+        //}
+
+        closeDialog();
+        return true;
+    }
+</script>
+<form id="form1" style="margin: 15px; margin-left: 20px; margin-right: 20px;">
+    <table border="0" class="form-find" >
+        <tr>
+            <th style="width: 10%;">选择打印机：</th>
+            <td style="width: 60%;">
+                <select id="PrinterList" class="txt select" datacol="yes" err="打印机" checkexpession="NotNull" style="width: 95%"></select>
+            </td>
+            <td style="width: 99%;">
+                <input id="btnGetWayBill" type="button" class="btnSearch" value="获取电子面单" onclick="GetWayBill()" />
+                <input id="btnPrint" type="button" class="btnSearch" value="打 印" onclick="PrintWayBill()" />
+            </td>
+        </tr>
+    </table>
+</form>
+<div>
+    <div>
+        待打印订单：<span id="orderID"></span> <span id="shipTypeName"></span>  <span id="shipTypeCode"></span>
+    </div>
+    <div  style="text-align:center;width:300px;margin:20px auto;">
+        <div id="tempHtml"></div>
+    </div>
+</div>
+

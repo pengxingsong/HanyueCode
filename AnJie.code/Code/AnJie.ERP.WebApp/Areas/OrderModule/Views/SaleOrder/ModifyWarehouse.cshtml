@@ -1,0 +1,43 @@
+﻿@{
+    ViewBag.Title = "修改发货仓库";
+    Layout = "~/Views/Shared/_LayoutForm.cshtml";
+}
+<script type="text/javascript">
+    var aryOrderNos = GetQuery('orderNos');
+    $(function () {
+        BindWarehouse();
+    });
+
+    //仓库下拉框
+    function BindWarehouse() {
+        $("#WarehouseId").html("");
+        $("#WarehouseId").append("<option value=''>--请选择--</option>");
+        AjaxJson("/BaseModule/Warehouse/GetList", {}, function (DataJson) {
+            $.each(DataJson, function (i) {
+                $("#WarehouseId").append($("<option></option>").val(DataJson[i].WarehouseId).html(DataJson[i].WarehouseName));
+            });
+        });
+    }
+
+    //保存事件
+    function AcceptClick() {
+        if (!CheckDataValid('#form1')) {
+            return false;
+        }
+        var postData = {
+            orderNos: aryOrderNos,
+            warehouseId: $("#WarehouseId").val()
+        }
+        AjaxJson("/OrderModule/SaleOrder/SubmitModifyWarehouse", postData, function (data) {
+            tipDialog(data.Message, 3, data.Code);
+            top.frames[tabiframeId()].windowload();
+            closeDialog();
+        });
+        return true;
+    }
+</script>
+<form id="form1" style="margin: 15px; margin-left: 20px; margin-right: 20px;">
+    <div>
+        <select id="WarehouseId" class="txtselect" datacol="yes" err="发货仓库" checkexpession="NotNull" style="width: 95%"></select>
+    </div>
+</form>

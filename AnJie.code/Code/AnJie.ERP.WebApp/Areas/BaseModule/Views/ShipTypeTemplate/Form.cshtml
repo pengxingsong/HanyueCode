@@ -1,0 +1,92 @@
+﻿@{
+    ViewBag.Title = "面单模板 》面单模板表单";
+    Layout = "~/Views/Shared/_LayoutForm.cshtml";
+}
+<script type="text/javascript">
+    $(function () {
+        InitControl();
+    });
+
+    //得到一个对象实体
+    function InitControl() {
+        if (!!GetQuery('KeyValue')) {
+            AjaxJson("/BaseModule/ShipTypeTemplate/SetForm", { KeyValue: GetQuery('KeyValue') }, function (data) {
+                SetWebControls(data);
+                $("#IsElectronicBill").attr("disabled", "disabled");
+            });
+        } else {
+            //显示顺序
+            AjaxJson("/BaseModule/ShipTypeTemplate/SortCode", {}, function (data) {
+                $("#SortCode").val(data);
+            });
+            $("#ShipTypeId").val(GetQuery('ShipTypeId'));
+        }
+    }
+
+    //保存事件
+    function AcceptClick() {
+        if (!CheckDataValid('#form1')) {
+            return false;
+        }
+        Loading(true, "正在提交数据...");
+        window.setTimeout(function () {
+            var postData = GetWebControls("#form1");
+            AjaxJson("/BaseModule/ShipTypeTemplate/SubmitForm?KeyValue=" + GetQuery('KeyValue'), postData, function (data) {
+                tipDialog(data.Message, 3, data.Code);
+                top.frames[tabiframeId()].windowload();
+                closeDialog();
+            });
+        }, 200);
+    }
+</script>
+<form id="form1" style="margin: 1px">
+    <div id="message" style="display: none"></div>
+    <table class="form">
+        <tr>
+            <th class="formTitle">
+                模板名称：
+            </th>
+            <td class="formValue" colspan="3">
+                <input id="ShipTypeId" type="hidden" />
+                <input id="TemplateName" type="text" class="txt required" datacol="yes" err="模板名称" checkexpession="NotNull" />
+            </td>
+        </tr>
+        <tr>
+            <th class="formTitle">宽度(mm)：</th>
+            <td class="formValue">
+                <input id="Width" type="text" class="txt required" datacol="yes" err="面单宽度(mm)" checkexpession="Num" />
+            </td>
+            <th class="formTitle">高度(mm)：</th>
+            <td class="formValue">
+                <input id="Height" type="text" class="txt required" datacol="yes" err="面单高度(mm)" checkexpession="Num" />
+            </td>
+        </tr>
+
+        <tr>
+            <th class="formTitle">显示顺序：</th>
+            <td class="formValue" colspan="3">
+                <input id="SortCode" type="text" onkeyup="IsNumber(this.id)" class="txt required" datacol="yes" err="显示顺序" checkexpession="Num" />
+            </td>
+        </tr>
+        <tr>
+            <th class="formTitle">选项：</th>
+            <td class="formValue" colspan="3">
+                <span class="item">
+                    <input id="IsElectronicBill" type="checkbox" name="IsElectronicBill" />
+                    <label for="IsElectronicBill">电子面单</label>
+               
+                    <input type="checkbox" name="checkbox" checked="checked" id="Enabled" />
+                    <label for="Enabled">有效</label>
+                </span>
+            </td>
+        </tr>
+        <tr>
+            <th class="formTitle">
+                说明：
+            </th>
+            <td class="formValue" colspan="3">
+                <textarea id="Remark" name="Description" maxlength="200" class="txtArea" rows="6"></textarea>
+            </td>
+        </tr>
+    </table>
+</form>

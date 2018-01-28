@@ -1,0 +1,219 @@
+﻿@{
+    ViewBag.Title = "物流方式管理 》表单页面";
+    Layout = "~/Views/Shared/_LayoutForm.cshtml";
+}
+<!--jqgrid表格组件start-->
+<script src="~/Content/Scripts/jqgrid/jquery-ui-custom.min.js"></script>
+<script src="~/Content/Scripts/jqgrid/grid.locale-cn.js"></script>
+<link href="~/Content/Scripts/jqgrid/css/jqgrid.css" rel="stylesheet" />
+<script src="~/Content/Scripts/jqgrid/jqGrid.js"></script>
+<!--表格组件end-->
+<script type="text/javascript">
+    var KeyValue = GetQuery('KeyValue');//主键
+    $(function () {
+        GetParameterGrid();
+        BindCombobox();
+        InitControl();
+    });
+
+    //得到一个对象实体
+    function InitControl() {
+        if (!!KeyValue) {
+            //配置方式信息
+            AjaxJson("/BaseModule/ShipType/SetForm", { KeyValue: KeyValue }, function (data) {
+                SetWebControls(data);
+            });
+
+            var rowindex = 1;
+            //参数信息
+            AjaxJson("/BaseModule/ShipType/GridShipTypeListJson", { ShipTypeId: KeyValue }, function (data) {
+                var jsonData = data.rows;
+                $.each(jsonData, function (i) {
+                    var rowData = jsonData[i];
+                    $("#ConfigField➩" + rowindex).val(rowData.ConfigField);
+                    $("#FieldValue➩" + rowindex).val(rowData.FieldValue);
+                    $("#SortCode➩" + rowindex).val(rowData.SortCode);
+                    $("#Memo➩" + rowindex).val(rowData.Memo);
+                    $("#gridTable tbody tr:eq(" + rowindex + ")").find('input,select').show();
+                    $("#gridTable tbody tr:eq(" + (rowindex + 1) + ") td:eq(1)").find('input').show();
+                    rowindex++;
+                });
+            });
+        } else {
+            //显示顺序
+            AjaxJson("/BaseModule/ShipType/SortCode",
+                {},
+                function (data) {
+                    $("#SortCode").val(data);
+                });
+        }
+    }
+
+    //初始化绑定下拉框
+    function BindCombobox() {
+        //所属商户
+        $("#ExpressNumStrategy").append("<option value=''>--请选择--</option>");
+        AjaxJson("/BaseModule/ShipType/ListExpressNumStrategy", {}, function (dataJson) {
+            $.each(dataJson, function (i) {
+                $("#ExpressNumStrategy").append($("<option></option>").val(dataJson[i].ExpressCode).html(dataJson[i].ExpressName));
+            });
+        });
+    }
+
+    //视图参数列表
+    function GetParameterGrid() {
+        $("#gridTable").jqGrid({
+            datatype: "local",
+            height: 222,
+            autowidth: true,
+            colModel: [
+                { label: '参数名', name: "ConfigField", width: 210, sortable: false },
+                { label: '参数值', name: "FieldValue", width: 210, sortable: false },
+                { label: '顺序', name: 'SortCode', width: 45, sortable: false, align: 'center' },
+                { label: '说明', name: 'Memo', width: 220, sortable: false }
+            ],
+            pager: false,
+            rownumbers: true,
+            shrinkToFit: false,
+            gridview: true,
+            hoverrows: false,
+        });
+        //默认添加10行 空行
+        for (var i = 1; i < 11; i++) {
+            var rowdata = {
+                ConfigField: '<input id="ConfigField➩' + i + '" onkeyup="FieInputEvent(' + i + ')" class="editable" type="text" />',
+                FieldValue: '<input id="FieldValue➩' + i + '" class="editable" type="text" />',
+                SortCode: '<input id="SortCode➩' + i + '" onfocus="IsNumber(this.id)" class="editable" style="text-align: center;" type="text" value="' + i + '" />',
+                Memo: '<input id="Memo➩' + i + '" class="editable" type="text" />',
+            }
+            $('#gridTable').jqGrid('addRowData', i, rowdata);
+        };
+        $("#gridTable tbody").find('input,select').hide();
+        $("#gridTable tbody tr:eq(1) td:eq(1)").find('input').show();
+
+        //滚动条到底事件
+        var nScrollHight = 0;
+        var nScrollTop = 0;
+        var njqgridHight = $(".ui-jqgrid-bdiv").height();
+        $('.ui-jqgrid-bdiv').scroll(function () {
+            nScrollHight = $(this)[0].scrollHeight;
+            nScrollTop = $(this)[0].scrollTop;
+            if (nScrollTop + njqgridHight >= nScrollHight) {
+                var rowIndex = $("#gridTable").jqGrid("getRowData").length + (1);
+                if (rowIndex <= 20) {
+                    var rowdata = {
+                        ConfigField: '<input id="ConfigField➩' + rowIndex + '" onkeyup="FieInputEvent(' + rowIndex + ')" class="editable" type="text" />',
+                        FieldValue: '<input id="FieldValue➩' + i + '" class="editable" type="text" />',
+                        SortCode: '<input id="SortCode➩' + rowIndex + '" onfocus="IsNumber(this.id)" class="editable" style="text-align: center;" type="text" value="' + rowIndex + '" />',
+                        Memo: '<input id="Memo➩' + rowIndex + '" class="editable" type="text" />',
+                    }
+                    $('#gridTable').jqGrid('addRowData', rowIndex, rowdata);
+                }
+            }
+        });
+    }
+
+    //参数字段输入事件
+    function FieInputEvent(index) {
+        $("#gridTable tbody tr:eq(" + index + ")").find('input,select').show();
+        $("#gridTable tbody tr:eq(" + (index + 1) + ") td:eq(1)").find('input').show();
+    }
+
+    //保存事件
+    function AcceptClick() {
+        if (!CheckDataValid('#form1')) {
+            return false;
+        }
+        Loading(true, "正在提交数据...");
+        window.setTimeout(function () {
+            var postData = GetWebControls("#tbInterfaceManage");
+            postData["ParameterJson"] = GetTableDataJson("#gridTable");
+            AjaxJson("/BaseModule/ShipType/SubmitShipTypeForm?KeyValue=" + KeyValue, postData, function (data) {
+                tipDialog(data.Message, 3, data.Code);
+                top.frames[tabiframeId()].windowload();
+                closeDialog();
+            });
+        }, 200);
+        return true;
+    }
+</script>
+<form id="form1">
+    <div style="margin: 1px;">
+        <table id="tbInterfaceManage" class="form">
+            <tr>
+                <th class="formTitle">
+                    物流方式编码：
+                </th>
+                <td class="formValue">
+                    <input id="Code" maxlength="50" type="text" class="txt required" datacol="yes" err="物流方式编码" checkexpession="NotNull" />
+                </td>
+            </tr>
+
+            <tr>
+                <th class="formTitle">
+                    物流方式名称：
+                </th>
+                <td class="formValue">
+                    <input id="ShipTypeName" maxlength="50" type="text" class="txt required" datacol="yes" err="物流方式名称" checkexpession="NotNull" />
+                </td>
+            </tr>
+            <tr>
+                <th class="formTitle">物流单号策略：</th>
+                <td class="formValue">
+                    <select id="ExpressNumStrategy" class="txtselect" datacol="yes" err="物流单号策略" checkexpession="NotNull"></select>
+                </td>
+            </tr>
+            <tr>
+                <th class="formTitle">快递100对应编码：</th>
+                <td class="formValue">
+                    <input id="KuaiDi100Code" maxlength="50" type="text" class="txt required" datacol="yes" err="快递100对应编码" checkexpession="NotNull" />
+                </td>
+            </tr>
+            <tr>
+                <th class="formTitle">显示顺序：</th>
+                <td class="formValue">
+                    <input id="SortCode" type="text" onkeyup="IsNumber(this.id)" class="txt required" datacol="yes" err="显示顺序" checkexpession="Num" />
+                </td>
+            </tr>
+
+        </table>
+        <div class="bd" style="border-bottom: none; margin-top: 1px; margin-bottom: 1px;">
+            <div class="tipstitle_title settingtable bold bd todayInfoPanelTab rightPanelTitle_normal">
+                <div class="tab_list_top" style="position: absolute">
+                    <div id="TabViewBarameter" class="tab_list bd actived" onclick="Tabchange('ViewBarameter')">配置参数</div>
+                </div>
+            </div>
+        </div>
+        <div class="ScrollBar">
+            <!--视图参数-->
+            <div id="ViewBarameter" class="tabPanel">
+                <table id="gridTable"></table>
+                <style>
+                    .ui-widget-content {
+                        border-top: 1px solid #ccc;
+                        border-right: 1px solid #ccc;
+                    }
+
+                    .ui-jqgrid tr.ui-row-ltr td {
+                        padding: 0px;
+                        border-bottom: 1px solid #ccc;
+                    }
+
+                    .ui-jqgrid .ui-state-highlight {
+                        background-color: none;
+                    }
+
+                    .ui-th-column, .ui-jqgrid .ui-jqgrid-htable th.ui-th-column {
+                        background: none;
+                    }
+
+                    .editable {
+                        height: 22px;
+                        background-color: #fff;
+                    }
+                </style>
+            </div>
+
+        </div>
+    </div>
+</form>

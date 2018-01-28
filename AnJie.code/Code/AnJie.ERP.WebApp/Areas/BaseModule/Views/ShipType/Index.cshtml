@@ -1,0 +1,114 @@
+﻿@{
+    ViewBag.Title = "物流方式管理";
+    Layout = "~/Views/Shared/_LayoutIndex.cshtml";
+}
+<script>
+    $(function () {
+        GetGrid();
+    });
+
+    //加载表格
+    function GetGrid() {
+        $("#gridTable").jqGrid({
+            url: "@Url.Content("~/BaseModule/ShipType/GridPageListJson")",
+            datatype: "json",
+            height: $(window).height() - 106,
+            autowidth: true,
+            colModel: [
+                { label: '主键', name: 'ShipTypeId', hidden: true },
+                { label: "物流方式编码", name: "Code", index: "Code", width: 100 },
+                { label: "物流方式名称", name: "ShipTypeName", index: "ShipTypeName", width: 500 },
+                {
+                    label: '有效', name: 'Enabled', index: 'Enabled', width: 45, align: 'center',
+                    formatter: function (cellvalue, options, rowObject) {
+                        if (cellvalue === '1') return "<img src='../../Content/Images/checkokmark.gif'/>";
+                        if (cellvalue === '0') return "<img src='../../Content/Images/checknomark.gif'/>";
+                        return cellvalue;
+                    }
+                },
+                { label: "创建用户", name: "CreateUserName", index: "CreateUserName", width: 100, align: 'center' },
+                {
+                    label: '创建时间', name: 'CreateDate', index: 'ModifyDate', width: 110, align: 'center',
+                    formatter: function (cellvalue, options, rowObject) {
+                        return formatDate(cellvalue, 'yyyy-MM-dd hh:mm');
+                    }
+                },
+                { label: "修改用户", name: "ModifyUserName", index: "ModifyUserName", width: 100, align: 'center' },
+                {
+                    label: '修改日期', name: 'ModifyDate', index: 'ModifyDate', width: 110, align: 'center',
+                    formatter: function (cellvalue, options, rowObject) {
+                        return formatDate(cellvalue, 'yyyy-MM-dd hh:mm');
+                    }
+                }
+            ],
+            loadonce: true,
+            viewrecords: true,
+            rowNum: 30,
+            rowList: [30, 50, 100, 500, 1000],
+            pager: "#gridPager",
+            shrinkToFit: false,
+            subGrid: true,
+            subGridRowExpanded: function (subgridId, rowId) {
+                var shipTypeId = GetJqGridValue("#gridTable", rowId, "ShipTypeId");
+                var subTableId = subgridId + "_t";
+                $("#" + subgridId).html("<table id='" + subTableId + "'></table>");
+                $("#" + subTableId).jqGrid({
+                    url: "@Url.Content("~/BaseModule/ShipType/GridShipTypeListJson")?ShipTypeId=" + escape(shipTypeId),
+                    datatype: "json",
+                    colModel: [
+                        { label: '参数名', name: "ConfigField", width: 210, sortable: false },
+                        { label: '参数值', name: "FieldValue", width: 210, sortable: false },
+                        { label: '顺序', name: 'SortCode', width: 45, sortable: false, align: 'center' },
+                        { label: '参数说明', name: 'Memo', width: 220, sortable: false }
+                    ],
+                    width: "900",
+                    rowNum: "all"
+                });
+            }
+        });
+    }
+
+    //新增
+    function btn_add() {
+        var url = "/BaseModule/ShipType/Form";
+        openDialog(url, "Form", "新增物流方式", 770, 395, function (iframe) {
+            top.frames[iframe].AcceptClick();
+        });
+    }
+
+    //编辑
+    function btn_edit() {
+        var keyValue = GetJqGridRowValue("#gridTable", "ShipTypeId");
+        if (IsChecked(keyValue)) {
+            var url = "/BaseModule/ShipType/Form?KeyValue=" + keyValue;
+            openDialog(url, "Form", "编辑物流方式", 770, 395, function (iframe) {
+                top.frames[iframe].AcceptClick();
+            });
+        }
+    }
+
+    //删除
+    function btn_delete() {
+        var keyValue = GetJqGridRowValue("#gridTable", "ShipTypeId");
+        if (IsSelectData(keyValue)) {
+            var delparm = 'KeyValue=' + keyValue;
+            delConfig('/BaseModule/ShipType/Delete', delparm, keyValue.split(",").length);
+        }
+    }
+
+    //刷新
+    function windowload() {
+        Replace();
+    }
+
+
+</script>
+<div class="tools_bar leftline rightline" style="margin: 1px; margin-bottom: 0px;">
+    <div class="PartialButton">
+        @Html.Partial("_PartialButton")
+    </div>
+</div>
+<div class="topline rightline" style="margin: 1px; margin-top: -1px;">
+    <table id="gridTable"></table>
+    <div id="gridPager"></div>
+</div>

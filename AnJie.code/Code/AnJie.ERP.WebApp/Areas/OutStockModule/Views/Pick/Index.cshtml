@@ -1,0 +1,234 @@
+﻿@{
+    ViewBag.Title = "生成拣货单";
+    Layout = "~/Views/Shared/_LayoutIndex.cshtml";
+}
+<script type="text/javascript">
+    $(function () {
+        BindWarehouse();
+        BindMerchant();
+        BindShipType();
+        GetGrid();
+
+        //绑定键盘按下事件
+        $(document).keypress(function (e) {
+            //回车键事件
+            if (e.which === 13) {
+                $("#orderNo").focus();
+                $("#orderNo").select();
+                $("#btnSearch").click();
+            }
+        });
+    });
+
+    //绑定仓库下拉框
+    function BindWarehouse() {
+        $("#WarehouseId").html("");
+        $("#WarehouseId").append("<option value=''>--请选择--</option>");
+        AjaxJson("/BaseModule/Warehouse/GetList", {}, function (dataJson) {
+            $.each(dataJson, function (i) {
+                $("#WarehouseId").append($("<option></option>").val(dataJson[i].WarehouseId).html(dataJson[i].WarehouseName));
+            });
+        });
+    }
+
+    //绑定商户下拉框
+    function BindMerchant() {
+        $("#MerchantId").html("");
+        $("#MerchantId").append("<option value=''>--全部--</option>");
+        AjaxJson("/MerchantModule/Merchant/ListJson", {}, function (dataJson) {
+            $.each(dataJson, function (i) {
+                $("#MerchantId").append($("<option></option>").val(dataJson[i].MerchantId).html(dataJson[i].FullName));
+            });
+        });
+    }
+
+    //物流方式下拉框
+    function BindShipType() {
+        $("#ShipTypeId").html("");
+        $("#ShipTypeId").append("<option value=''>--请选择--</option>");
+        AjaxJson("/BaseModule/ShipType/ListJson", {}, function (dataJson) {
+            $.each(dataJson, function (i) {
+                $("#ShipTypeId").append($("<option></option>").val(dataJson[i].ShipTypeId).html(dataJson[i].ShipTypeName));
+            });
+        });
+    }
+
+    //搜索
+    function btn_Search() {
+        var merchantId = $("#MerchantId").val();
+        var warehouseId = $("#WarehouseId").val();
+        if (warehouseId === "") {
+            alertDialog("请选择仓库", 0);
+            return;
+        }
+
+        var orderNo = $("#OrderNo").val();
+        var sourceOrderNo = $("#SourceOrderNo").val();
+        var shipTypeId = $("#ShipTypeId").val();
+        var startTime = $("#StartTime").val();
+        var endTime = $("#EndTime").val();
+
+        var postData = {
+            QueryType: "QueryByStatus",
+            PrintBatchId: "",
+            MerchantId: merchantId,
+            WarehouseId: warehouseId,
+            OrderNo: orderNo,
+            SourceOrderNo: sourceOrderNo,
+            ShipTypeId: shipTypeId,
+            StartTime: startTime,
+            EndTime: endTime
+        };
+
+        $("#gridTable").jqGrid('setGridParam', {
+            postData: postData,
+            page: 1
+        }).trigger('reloadGrid');
+    }
+
+    //加载表格
+    function GetGrid() {
+        var selectRowIndx;
+        $("#gridTable").jqGrid({
+            url: "@Url.Content("~/OutStockModule/Pick/GetOrderList")",
+            datatype: "json",
+            mtype: 'POST',
+            height: $(window).height() - 178,
+            autowidth: true,
+            colModel: [
+                { label: '主键', name: 'OrderId', width: 80, align: 'left', hidden: true },
+                { label: '订单编号', name: 'OrderNo', index: 'OrderNo', width: 100, align: 'center' },
+                { label: '发货仓库', name: 'WarehouseName', index: 'WarehouseName', width: 100, align: 'center' },
+                { label: '所属商户', name: 'MerchantName', index: 'MerchantName', width: 100, align: 'center' },
+                { label: '所属店铺', name: 'MallName', index: 'MallName', width: 100, align: 'center' },
+                { label: '物流方式', name: 'ShipTypeName', index: 'ShipTypeName', width: 100, align: 'center' },
+                {
+                    label: '订单日期', name: 'OrderDate', index: 'OrderDate', width: 110, align: 'center',
+                    formatter: function (cellvalue, options, rowObject) {
+                        return formatDate(cellvalue, 'yyyy-MM-dd hh:mm');
+                    }
+                },
+
+                   { label: '打印', name: 'PrintStatusShow', index: 'PrintStatusShow', width: 45, align: 'center' },
+                   {
+                       label: '打印时间', name: 'PrintTime', index: 'PrintTime', width: 110, align: 'center',
+                       formatter: function (cellvalue, options, rowObject) {
+                           return formatDate(cellvalue, 'yyyy-MM-dd hh:mm');
+                       }
+                   },
+                   { label: '物流单号', name: 'ExpressNum', index: 'ExpressNum', width: 80 },
+                   { label: '状态', name: 'StatusShow', index: 'StatusShow', width: 70, align: 'center' },
+                   { label: '挂单', name: 'IsSuspendedShow', index: 'IsSuspendedShow', width: 45, align: 'center' },
+                   { label: '挂单', name: 'IsSuspended', index: 'IsSuspended', width: 80, align: 'left', hidden: true },
+                { label: '制单员', name: 'CreateUserName', index: 'CreateUserName', width: 90, align: 'center' },
+                { label: '修改人员', name: 'ModifyUserName', index: 'ModifyUserName', width: 90, align: 'center' },
+                {
+                    label: '修改日期', name: 'ModifyDate', index: 'ModifyDate', width: 110, align: 'center',
+                    formatter: function (cellvalue, options, rowObject) {
+                        return formatDate(cellvalue, 'yyyy-MM-dd hh:mm');
+                    }
+                },
+                { label: '备注', name: 'Remark', index: 'Remark', width: 200, align: 'left' }
+            ],
+            viewrecords: true,
+            rowNum: 30,
+            rowList: [30, 50, 100, 500, 1000],
+            pager: "#gridPager",
+            sortname: 'CreateDate',
+            sortorder: 'desc',
+            rownumbers: true,
+            shrinkToFit: false,
+            gridview: true,
+            subGrid: true,
+            multiselect: true,
+            subGridRowExpanded: function (subGridId, rowId) {
+                var orderNo = GetJqGridValue("#gridTable", rowId, "OrderNo");
+                var subTableId = subGridId + "_t";
+                $("#" + subGridId).html("<table id='" + subTableId + "'></table>");
+                $("#" + subTableId).jqGrid({
+                    url: "@Url.Content("~/OutStockModule/Pick/GetPickItemListByOrderNo")?OrderNo=" + orderNo,
+                    datatype: "json",
+                    colModel: [
+                        { label: '主键', name: 'ItemId', hidden: true },
+                        { label: '商品名称', name: "ProductName", width: 300, sortable: false },
+                        { label: '订单号', name: "OrderNo", width: 120, sortable: false, align: 'center' },
+                        { label: '拣货库区', name: "ZoneCode", width: 100, sortable: false, align: 'center' },
+                        { label: '拣货储位', name: "LocationCode", width: 100, sortable: false, align: 'center' },
+                        { label: '目的出位', name: 'ToLocationCode', width: 80, sortable: false, align: 'center' },
+                        { label: '拣货量', name: "Qty", width: 100, sortable: false, align: 'center' }
+                    ],
+                    rowNum: "all"
+                });
+            },
+            onSelectRow: function () {
+                selectRowIndx = GetJqGridRowIndx("#" + this.id);
+            },
+            gridComplete: function () {
+                $("#" + this.id).jqGrid('setSelection', selectRowIndx);
+            }
+        });
+        columnModelData("#gridTable");
+    }
+
+    //生成拣货单
+    function btn_CreatePickMaster() {
+        var keyValue = GetJqGridRowValue("#gridTable", "OrderNo");
+        if (IsSelectData(keyValue)) {
+            var delparm = 'orderNos=' + keyValue;
+            operationConfig('生成拣货单', '/OutStockModule/Pick/CreatePickMaster', delparm, keyValue.split(",").length);
+        }
+    }
+
+    //刷新
+    function windowload() {
+        $("#gridTable").trigger("reloadGrid"); //重新载入
+    }
+</script>
+<form id="form1">
+    <div class="tools_bar leftline rightline" style="margin-bottom: 0px; margin: 1px;">
+        <div class="PartialButton">
+            @Html.Partial("_PartialButton")
+        </div>
+    </div>
+    <div class="QueryArea">
+        <table border="0" class="form-find" style="width: 1300px;">
+            <tr>
+                <th style="width: 8%;">发货仓库：</th>
+                <td style="width: 17%;">
+                    <select id="WarehouseId" class="txt select" datacol="yes" style="width: 99%"></select>
+                </td>
+                <th style="width: 8%;">所属商户：</th>
+                <td style="width: 17%;">
+                    <select id="MerchantId" class="txt select" datacol="yes" style="width: 99%"></select>
+                </td>
+                <th style="width: 8%;">物流方式：</th>
+                <td style="width: 17%;">
+                    <select id="ShipTypeId" class="txt select" datacol="yes" style="width: 99%"></select>
+                </td>
+                <th style="width: 8%;">外部单号：</th>
+                <td style="width: 17%;">
+                    <input id="SourceOrderNo" type="text" class="txt" style="width: 99%" />
+                </td>
+            </tr>
+            <tr>
+                <th>订单号：</th>
+                <td>
+                    <input id="OrderNo" type="text" class="txt" style="width: 99%" />
+                </td>
+                <th>下单时间：</th>
+                <td colspan="2">
+                    <input id="StartTime" type="text" class="txt Wdate" value="@AnJie.ERP.Utilities.DateTimeHelper.GetDate(-7)" style="width: 120px" onfocus="var endDate = $dp.$('EndTime'); WdatePicker({ onpicked: function () { endDate.focus(); }, maxDate: '#F{$dp.$D(\'EndTime\')}' });" />
+                    -
+                    <input id="EndTime" type="text" class="txt Wdate" value="@AnJie.ERP.Utilities.DateTimeHelper.GetToday()" style="width: 120px" onfocus="WdatePicker({ minDate: '#F{$dp.$D(\'StartTime\')}' })" />
+                </td>
+                <td colspan="3">
+                    <input id="btnSearch" type="button" class="btnSearch" value="搜 索" onclick="btn_Search()" />
+                </td>
+            </tr>
+        </table>
+    </div>
+    <div id="grid_List" class="topline">
+        <table id="gridTable"></table>
+        <div id="gridPager"></div>
+    </div>
+</form>

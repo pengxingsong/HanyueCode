@@ -1,0 +1,431 @@
+﻿@{
+    ViewBag.Title = "打印管理";
+    Layout = "~/Views/Shared/_LayoutIndex.cshtml";
+}
+<style type="text/css">
+    .rightPanelTitle_normal .actived {
+        border-bottom-color: #ccc;
+        font-weight: bold;
+        background-color: #4682b4;
+        color: #ffffff;
+    }
+</style>
+<script type="text/javascript">
+    $(function () {
+        BindWarehouse();
+        BindMerchant();
+        BindShipType();
+        GetGrid();
+        //绑定键盘按下事件
+        $(document).keypress(function (e) {
+            //回车键事件
+            if (e.which === 13) {
+                $("#orderNo").focus();
+                $("#orderNo").select();
+                $("#btnSearch").click();
+            }
+        });
+    });
+
+    //绑定仓库下拉框
+    function BindWarehouse() {
+        $("#WarehouseId").html("");
+        $("#WarehouseId").append("<option value=''>--请选择--</option>");
+        AjaxJson("/BaseModule/Warehouse/GetList", {}, function (dataJson) {
+            $.each(dataJson, function (i) {
+                $("#WarehouseId").append($("<option></option>").val(dataJson[i].WarehouseId).html(dataJson[i].WarehouseName));
+            });
+        });
+    }
+
+    //绑定商户下拉框
+    function BindMerchant() {
+        $("#MerchantId").html("");
+        $("#MerchantId").append("<option value=''>--全部--</option>");
+        AjaxJson("/MerchantModule/Merchant/ListJson", {}, function (dataJson) {
+            $.each(dataJson, function (i) {
+                $("#MerchantId").append($("<option></option>").val(dataJson[i].MerchantId).html(dataJson[i].FullName));
+            });
+        });
+    }
+
+    //物流方式下拉框
+    function BindShipType() {
+        $("#ShipTypeId").html("");
+        $("#ShipTypeId").append("<option value=''>--请选择--</option>");
+        AjaxJson("/BaseModule/ShipType/ListJson", {}, function (dataJson) {
+            $.each(dataJson, function (i) {
+                $("#ShipTypeId").append($("<option></option>").val(dataJson[i].ShipTypeId).html(dataJson[i].ShipTypeName));
+            });
+        });
+    }
+
+    //搜索
+    function btn_Search() {
+        Search();
+    }
+
+    var printStatus = -1;
+    var queryType = 'All';
+    //搜索
+    function Search() {
+        var merchantId = $("#MerchantId").val();
+        var warehouseId = $("#WarehouseId").val();
+        if (warehouseId === "") {
+            alertDialog("请选择仓库", 0);
+            return false;
+        }
+
+        var orderNo = $("#OrderNo").val();
+        var sourceOrderNo = $("#SourceOrderNo").val();
+        var receiveContact = $("#ReceiveContact").val();
+        var receivePhone = $("#ReceivePhone").val();
+        var shipTypeId = $("#ShipTypeId").val();
+        var expressNum = $("#ExpressNum").val();
+        var startTime = $("#StartTime").val();
+        var endTime = $("#EndTime").val();
+
+        var postData = {
+            QueryType: "QueryByPrintStatus",
+            PrintBatchId: "",
+            MerchantId: merchantId,
+            WarehouseId: warehouseId,
+            OrderNo: orderNo,
+            SourceOrderNo: sourceOrderNo,
+            ReceiveContact: receiveContact,
+            ReceivePhone: receivePhone,
+            ShipTypeId: shipTypeId,
+            ExpressNum: expressNum,
+            StartTime: startTime,
+            EndTime: endTime
+        };
+
+        if (queryType !== 'All') {
+            postData.PrintStatus = printStatus;
+        } else {
+            postData.PrintStatus = null;
+        }
+
+        $("#gridTable").jqGrid('setGridParam', {
+            postData: postData,
+            page: 1
+        }).trigger('reloadGrid');
+        return true;
+    }
+
+    //Tab标签切换
+    function OrderTabChange(id, status) {
+        if (id === "PrintHistory") {
+            btn_BatchPrintHistory();
+            return;
+        }
+        queryType = id;
+        printStatus = status;
+        var result = Search();
+        if (result) {
+            $(".tab_list_top div").removeClass("actived");
+            $(".tab_list_top").find("#Tab" + id).addClass("actived"); //添加选中样式
+        }
+    }
+
+    //加载表格
+    function GetGrid() {
+        $("#gridTable").jqGrid({
+            url: "@Url.Content("~/OutStockModule/Print/GetOrderList")",
+            datatype: "json",
+            mtype: 'POST',
+            height: $(window).height() - 210,
+            autowidth: true,
+            colModel: [
+                   { label: '主键', name: 'OrderId', width: 80, align: 'left', hidden: true },
+                   { label: '物流方式Id', name: 'ShipTypeId', width: 80, align: 'left', hidden: true },
+                   { label: '订单编号', name: 'OrderNo', index: 'OrderNo', width: 120, align: 'center' },
+                   { label: '外部单号', name: 'SourceOrderNo', index: 'SourceOrderNo', width: 120 },
+                   { label: '发货仓库', name: 'WarehouseName', index: 'WarehouseName', width: 100, align: 'center', hidden: true },
+                   { label: '所属商户', name: 'MerchantName', index: 'MerchantName', width: 100, align: 'center' },
+                   { label: '省', name: 'Province', index: 'Province', width: 100 },
+                   { label: '市', name: 'City', index: 'City', width: 100 },
+                   { label: '区', name: 'County', index: 'County', width: 100 },
+                   { label: '物流方式', name: 'ShipTypeName', index: 'ShipTypeName', width: 100, align: 'center' },
+                   { label: '物流代码', name: 'ShipTypeCode', index: 'ShipTypeCode', width: 50, align: 'center' },
+                   {
+                       label: '订单日期', name: 'OrderDate', index: 'OrderDate', width: 110, align: 'center',
+                       formatter: function (cellvalue, options, rowObject) {
+                           return formatDate(cellvalue, 'yyyy-MM-dd hh:mm');
+                       }
+                   },
+                   { label: '打印', name: 'PrintStatusShow', index: 'PrintStatusShow', width: 45, align: 'center' },
+                   {
+                       label: '打印时间', name: 'PrintTime', index: 'PrintTime', width: 110, align: 'center',
+                       formatter: function (cellvalue, options, rowObject) {
+                           return formatDate(cellvalue, 'yyyy-MM-dd hh:mm');
+                       }
+                   },
+                   { label: '物流单号', name: 'ExpressNum', index: 'ExpressNum', width: 80 },
+                   { label: '状态', name: 'StatusShow', index: 'StatusShow', width: 70, align: 'center' },
+                   { label: '挂单', name: 'IsSuspendedShow', index: 'IsSuspendedShow', width: 45, align: 'center' },
+                   { label: '挂单', name: 'IsSuspended', index: 'IsSuspended', width: 80, align: 'left', hidden: true },
+                   { label: '买家留言', name: 'BuyerNote', index: 'BuyerNote', width: 100 },
+                   { label: '卖家留言', name: 'SellerNote', index: 'SellerNote', width: 100 },
+                   { label: '备注', name: 'Remark', index: 'Remark', width: 200, align: 'left' }
+            ],
+            viewrecords: true,
+            rowNum: 30,
+            rowList: [30, 50, 100, 500, 1000],
+            pager: "#gridPager",
+            sortname: 'CreateDate',
+            sortorder: 'desc',
+            rownumbers: true,
+            shrinkToFit: false,
+            gridview: true,
+            subGrid: false,
+            multiselect: true
+        });
+        columnModelData("#gridTable");
+    }
+
+    //刷新
+    function windowload() {
+        $("#gridTable").trigger("reloadGrid"); //重新载入
+    }
+
+    //修改物流方式
+    function btn_ModifyShipType() {
+        var orderNos = GetJqGridRowValue("#gridTable", "OrderNo");
+        if (IsSelectData(orderNos)) {
+            openDialog("@Url.Content("~/OrderModule/SaleOrder/ModifyShipType")?orderNos=" + orderNos, "ModifyShipType", "修改物流方式", 300, 60, function (iframe) {
+                top.frames[iframe].AcceptClick();
+                $("#gridTable").trigger("reloadGrid"); //重新载入
+            });
+        }
+    }
+
+    //打印快递单
+    function btn_PrintExpressBill() {
+        var orderNos = GetJqGridRowValue("#gridTable", "OrderNo");
+        var shipTypeIds = GetJqGridRowValue("#gridTable", "ShipTypeId");
+        if (IsSelectData(shipTypeIds) && IsSelectData(orderNos)) {
+            var aryShipTypeId = shipTypeIds.split(",");
+            aryShipTypeId = getUnique(aryShipTypeId);
+            if (aryShipTypeId.length > 1) {
+                alertDialog("只能批量打印同一物流方式的出库单", 0);
+                return;
+            }
+            var shipTypeId = aryShipTypeId[0];
+            openDialog("@Url.Content("~/OutStockModule/Print/SelectPrinter")?orderNos=" + orderNos + "&shipTypeId=" + shipTypeId, "SelectPrinter", "选择打印机", 400, 100, function (iframe) {
+                top.frames[iframe].AcceptClick();
+            });
+        }
+    }
+
+    //打印电子面单
+    function btn_PrintWayBill() {
+        var orderNos = GetJqGridRowValue("#gridTable", "OrderNo");
+        var shipTypeIds = GetJqGridRowValue("#gridTable", "ShipTypeId");
+        var shipTypeCodes = GetJqGridRowValue("#gridTable", "ShipTypeCode");
+        var shipTypeNames = GetJqGridRowValue("#gridTable", "ShipTypeName");
+        if (IsSelectData(shipTypeIds) && IsSelectData(orderNos) && IsSelectData(shipTypeCodes)) {
+            var aryShipTypeId = shipTypeIds.split(",");
+            var aryShipTypeCode = shipTypeCodes.split(",");
+            var aryShipTypeName = shipTypeNames.split(",");
+            aryShipTypeId = getUnique(aryShipTypeId);
+            aryShipTypeCode = getUnique(aryShipTypeCode);
+            if (aryShipTypeId.length > 1 || aryShipTypeCode.length>1) {
+                alertDialog("只能批量打印同一物流方式的出库单", 0);
+                return;
+            }
+            var orderNo = orderNos.split(",")[0];
+            var shipTypeId = aryShipTypeId[0];
+            var shipTypeCode = aryShipTypeCode[0];
+            var shipTypeName = aryShipTypeName[0];
+            var para = "orderNos=" + orderNo + "&shipTypeId=" + shipTypeId + "&shipTypeCode=" + shipTypeCode + "&shipTypeName=" + escape(shipTypeName);
+            openDialog("@Url.Content("~/OutStockModule/Print/PrintWayBill")?" + para, "PrintWayBill", "打印电子面单", 800, 650, function (iframe) {
+                top.frames[iframe].AcceptClick();
+            });
+        }
+    }
+
+    //打印快递单
+    function PrintExpressBill(orderNos, templateId, printIndex) {
+        AjaxJson("/OutStockModule/Print/SavePrintBatch", { OrderNos: orderNos, TemplateId: templateId }, function (data) {
+            if (data.Code === "1") {
+                openDialog("@Url.Content("~/OutStockModule/Print/PrintExpressBill")?orderNos=" + orderNos + "&templateId=" + templateId + "&printIndex=" + printIndex, "PrintExpressBill", "打印快递单", 600, 200, function (iframe) {
+                    top.frames[iframe].AcceptClick();
+                });
+            }
+            else {
+                tipDialog(data.Message, 3, data.Code);
+            }
+        });
+    }
+
+    //匹配物流单号
+    function btn_UpdateExpressNum() {
+        var orderNos = GetJqGridRowValue("#gridTable", "OrderNo");
+        var shipTypeIds = GetJqGridRowValue("#gridTable", "ShipTypeId");
+        if (IsSelectData(shipTypeIds) && IsSelectData(orderNos)) {
+            var aryShipTypeId = shipTypeIds.split(",");
+            aryShipTypeId = getUnique(aryShipTypeId);
+            if (aryShipTypeId.length > 1) {
+                alertDialog("只能批量打印同一物流方式的出库单", 0);
+                return;
+            }
+            var shipTypeId = aryShipTypeId[0];
+            openDialog("@Url.Content("~/OutStockModule/Print/UpdateExpressNum")?orderNos=" + orderNos + "&shipTypeId=" + shipTypeId, "UpdateExpressNum", "匹配物流单号", 600, 500, function (iframe) {
+                top.frames[iframe].AcceptClick();
+            });
+        }
+    }
+
+    //查询打印方案
+    function btn_QueryPrintPlan() {
+        QueryDialog("/OutStockModule/Print/QueryPrintPlan", "QueryPrintPlan", "查询打印方案", 770, 395, function (iframe) {
+            top.frames[iframe].QueryClick(function (selectBatchId) {
+                var postData = {};
+                postData.QueryType = "PrintBatch";
+                postData.PrintBatchId = selectBatchId;
+                $("#gridTable").jqGrid('setGridParam', {
+                    postData: postData,
+                    page: 1
+                }).trigger('reloadGrid');
+
+                $(".tab_list_top div").removeClass("actived");
+                $(".tab_list_top").find("#TabPrintHistory").addClass("actived"); //添加选中样式
+            });
+        });
+    }
+
+    //打印发货单
+    function btn_PrintShipmentBill() {
+        var orderNos = GetJqGridRowValue("#gridTable", "OrderNo");
+        var shipTypeIds = GetJqGridRowValue("#gridTable", "ShipTypeId");
+        if (IsSelectData(shipTypeIds) && IsSelectData(orderNos)) {
+            var aryShipTypeId = shipTypeIds.split(",");
+            aryShipTypeId = getUnique(aryShipTypeId);
+            if (aryShipTypeId.length > 1) {
+                alertDialog("只能批量打印同一物流方式的发货单", 0);
+                return;
+            }
+            var shipTypeId = aryShipTypeId[0];
+            openDialog("@Url.Content("~/OutStockModule/Print/SelectOrderPrinter")?orderNos=" + orderNos + "&shipTypeId=" + shipTypeId, "SelectPrinter", "选择打印机", 400, 100, function (iframe) {
+                top.frames[iframe].AcceptClick();
+            });
+        }
+    }
+
+    //打印发货单
+    function PrintShipmentBill(orderNos, templateId, printIndex) {
+        openDialog("@Url.Content("~/OutStockModule/Print/PrintShipmentBill")?orderNos=" + orderNos + "&templateId=" + templateId + "&printIndex=" + printIndex, "PrintExpressBill", "打印发货单", 600, 200, function (iframe) {
+                    top.frames[iframe].AcceptClick();
+        });
+    }
+
+    //批量打印记录
+    function btn_BatchPrintHistory() {
+        QueryDialog("/OutStockModule/Print/QueryPrintHistory", "QueryPrintHistory", "批量打印历史", 770, 395, function (iframe) {
+            top.frames[iframe].QueryClick(function (selectBatchId) {
+                var postData = {};
+                postData.QueryType = "PrintBatch";
+                postData.PrintBatchId = selectBatchId;
+                $("#gridTable").jqGrid('setGridParam', {
+                    postData: postData,
+                    page: 1
+                }).trigger('reloadGrid');
+
+                $(".tab_list_top div").removeClass("actived");
+                $(".tab_list_top").find("#TabPrintHistory").addClass("actived"); //添加选中样式
+            });
+        });
+    }
+
+    //数组去重()
+    function getUnique(someArray) {
+        var tempArray = someArray.slice(0);//复制数组到临时数组
+        for (var i = 0; i < tempArray.length; i++) {
+            for (var j = i + 1; j < tempArray.length;) {
+                if (tempArray[j] === tempArray[i])
+                    //后面的元素若和待比较的相同，则删除并计数；
+                    //删除后，后面的元素会自动提前，所以指针j不移动
+                {
+                    tempArray.splice(j, 1);
+                }
+                else {
+                    j++;
+                }
+                //不同，则指针移动
+            }
+        }
+        return tempArray;
+    }
+
+</script>
+
+<div class="tools_bar leftline rightline" style="margin-bottom: 0px; margin: 1px;">
+    <div class="PartialButton">
+        @Html.Partial("_PartialButton")
+    </div>
+</div>
+<div class="rightline" style="margin: 1px; margin-top: -1px;">
+    <div class="QueryArea">
+        <table border="0" class="form-find" style="width: 1300px;">
+            <tr>
+                <th style="width: 8%;">发货仓库：</th>
+                <td style="width: 17%;">
+                    <select id="WarehouseId" class="txt select" datacol="yes" style="width: 99%"></select>
+                </td>
+                <th style="width: 8%;">所属商户：</th>
+                <td style="width: 17%;">
+                    <select id="MerchantId" class="txt select" datacol="yes" style="width: 99%"></select>
+                </td>
+                <th style="width: 8%;">物流方式：</th>
+                <td style="width: 17%;">
+                    <select id="ShipTypeId" class="txt select" datacol="yes" style="width: 99%"></select>
+                </td>
+                <th style="width: 8%;">外部单号：</th>
+                <td style="width: 17%;">
+                    <input id="SourceOrderNo" type="text" class="txt" style="width: 99%" />
+                </td>
+            </tr>
+            <tr>
+                <th>订单号：</th>
+                <td>
+                    <input id="OrderNo" type="text" class="txt" style="width: 99%" />
+                </td>
+                <th>物流单号：</th>
+                <td>
+                    <input id="ExpressNum" type="text" class="txt" style="width: 99%" />
+                </td>
+                <th>下单时间：</th>
+                <td colspan="2">
+                    <input id="StartTime" type="text" class="txt Wdate" value="@AnJie.ERP.Utilities.DateTimeHelper.GetDate(-30)" style="width: 120px" onfocus="var endDate = $dp.$('EndTime'); WdatePicker({ onpicked: function () { endDate.focus(); }, maxDate: '#F{$dp.$D(\'EndTime\')}' });" />
+                    -
+                    <input id="EndTime" type="text" class="txt Wdate" value="@AnJie.ERP.Utilities.DateTimeHelper.GetToday()" style="width: 120px" onfocus="WdatePicker({ minDate: '#F{$dp.$D(\'StartTime\')}' })" />
+                </td>
+                <td>
+                    <input id="btnSearch" type="button" class="btnSearch" value="搜 索" onclick="btn_Search()" />
+                </td>
+            </tr>
+        </table>
+    </div>
+    <div id="grid_List" class="topline">
+        <div class="ToolbaAarea">
+            <div class="bd" style="border: none;">
+                <div class="tipstitle_title settingtable bold bd todayInfoPanelTab rightPanelTitle_normal" style="padding-left: 50px;">
+                    <div class="tab_list_top">
+                        <div id="TabAll" class="tab_list bd actived" onclick="OrderTabChange('All',-1)">全部</div>
+                        <div class="tab_list"></div>
+
+                        <div id="TabWaitPrint" class="tab_list bd" onclick="OrderTabChange('WaitPrint', 0)">待打印</div>
+                        <div id="TabPrinting" class="tab_list bd" onclick="OrderTabChange('Printing', 1)">打印中</div>
+                        <div id="TabPrinted" class="tab_list bd" onclick="OrderTabChange('Printed', 2)">已打印</div>
+
+                        <div class="tab_list"></div>
+                        <div id="TabPrintHistory" class="tab_list bd" onclick="OrderTabChange('PrintHistory', 0)">打印历史</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <table id="gridTable"></table>
+        <div id="gridPager"></div>
+    </div>
+</div>

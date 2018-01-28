@@ -1,0 +1,197 @@
+﻿@{
+    ViewBag.Title = "平台商户授权设置";
+    Layout = "~/Views/Shared/_LayoutIndex.cshtml";
+}
+
+
+<style type="text/css">
+    .ui-state-highlight, .ui-widget-content .ui-state-highlight, .ui-widget-header .ui-state-highlight {
+        background: none;
+        color: #000000;
+    }
+
+    .ui-widget-content {
+        border-left: none;
+    }
+
+    .ui-jqgrid tr.ui-row-ltr td {
+        padding: 0px;
+        border-bottom: 1px solid #ccc;
+    }
+
+    .ui-jqgrid tr.ui-row-ltr td input[type=text] {
+        padding: 0 3px;
+    }
+
+    .ui-jqgrid .ui-jqgrid-htable th {
+        line-height: 15px;
+    }
+
+    .ui-th-column, .ui-jqgrid .ui-jqgrid-htable th.ui-th-column {
+        background: none;
+    }
+
+    .editable {
+        height: 22px;
+        background-color: #fff;
+    }
+</style>
+
+<script type="text/javascript">
+
+    var PlatformID = GetQuery('ID');
+    var PlatformCode = GetQuery('Code');
+    var PlatformName = GetQuery('Name');
+
+    var reqUrl = "/BaseModule/ForeignPlatformMgr/";
+
+    $(function () {
+        DarwDataGrid();
+        CreateDefaultDataRow();
+        SetInfo();
+        GetForeignSysApiDataList();
+
+        var array = new Array();
+        function IsExistItem(index, code) {
+            if (!ArrayExists(array, code)) {
+                array[index] = code;
+                return false;
+            } else {
+                return true;
+            }
+        }
+
+        $("#gridTable tr td input[id^=MerchantName➩]").click(function () {
+            var index = $(this).attr('id').split('➩')[1];
+            var url = "/MerchantModule/MerchantMall/MerchantMallListView?index="+index;
+            openDialog(url, "list", "商户店铺选择", 800, 400, function (iframe) {
+                top.frames[iframe].AcceptClick();
+            });
+        });
+
+
+
+    });
+
+    function SetInfo() {
+        $("#PlatformName").text(PlatformName);
+        $("#PlatformCode").text(PlatformCode);
+    }
+
+    var array = new Array();
+    function IsExistItem(index, code) {
+        if (!ArrayExists(array, code)) {
+            array[index] = code;
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+    //绘制数据表
+    function DarwDataGrid() {
+        $("#gridTable").jqGrid({
+            datatype: "local",
+            width: 790,
+            height: 370,
+            autowidth: false,
+            colModel: [
+                { label: '商户名称', name: "MerchantName", width: 100, sortable: false },
+                { label: '商户编码', name: "MerchantCode", width: 100, sortable: false },
+                { label: '店铺名称', name: "MallName", width: 100, sortable: false },
+                { label: '店铺编码', name: "MallCode", width: 100, sortable: false },
+                { label: 'AppKey', name: "AppKey", width: 120, sortable: false },
+                { label: 'AppSecret', name: "AppSecret", width: 120, sortable: false },
+                { label: '是否禁用', name: "IsDiabled", width: 50, sortable: false, align: 'center' },
+                { label: '描述', name: "Description", width: 180, sortable: false },
+            ],
+            pager: false,
+            rownumbers: true,
+            shrinkToFit: false,
+            gridview: true,
+            footerrow: false,
+        });
+    }
+
+    //创建默认行数据
+    function CreateDefaultDataRow() {
+        for (var i = 1; i <= 15; i++) {
+            var rowdata = {
+                MerchantName: '<input id="MerchantName➩' + i + '" class="editable" type="text" /><input id="MerchantID➩' + i + '" class="editable" type="hidden"/><input id="ID➩' + i + '" class="editable" type="hidden"/>',
+                MerchantCode: '<input id="MerchantCode➩' + i + '" class="editable" type="text"/>',
+                MallName: '<input id="MallName➩' + i + '" class="editable" type="text"/><input id="MallID➩' + i + '" class="editable" type="hidden"/><input id="ID➩' + i + '" class="editable" type="hidden"/>',
+                MallCode: '<input id="MallCode➩' + i + '" class="editable" type="text"/>',
+                AppKey: '<input id="AppKey➩' + i + '" class="editable" type="text"  />',
+                AppSecret: '<input id="AppSecret➩' + i + '" class="editable" type="text"  />',
+                IsDiabled: '<input id="IsDiabled➩' + i + '" class="editable" type="checkbox" cbvaltype="bool" />',
+                Description: '<input id="Description➩' + i + '" class="editable" type="text"/>',
+            }
+            $('#gridTable').jqGrid('addRowData', i, rowdata);
+            if (i > 1) {
+                $("#gridTable tbody tr:eq(" + i + ")").find('input').attr('disabled', 'disabled');
+            }
+        }
+        
+    }
+
+    //获取api地址列表信息
+    function GetForeignSysApiDataList() {
+        if (PlatformID) {
+            var rowindex = 1;
+            AjaxJson(reqUrl + "GetPlatformMerchantsAuthDataList", { platformID: PlatformID }, function (data) {
+                if (data && data.rows) {
+                    var jsonData = data.rows;
+                    $.each(jsonData, function (i) {
+                        var rowData = jsonData[i];
+                        $("#ID➩" + rowindex).val(rowData.ID);
+                        $("#MerchantName➩" + rowindex).val(rowData.MerchantName);
+                        $("#MerchantID➩" + rowindex).val(rowData.MerchantID);
+                        $("#MerchantCode➩" + rowindex).val(rowData.MerchantCode);
+                        $("#MallName➩" + rowindex).val(rowData.MallName);
+                        $("#MallCode➩" + rowindex).val(rowData.MallCode);
+                        $("#MallID➩" + rowindex).val(rowData.MallID);
+                        $("#AppKey➩" + rowindex).val(rowData.AppKey);
+                        $("#AppSecret➩" + rowindex).val(rowData.AppSecret);
+                        $("#IsDiabled➩" + rowindex).attr("checked", rowData.IsDiabled);
+                        $("#Description➩" + rowindex).val(rowData.Description);
+                        rowindex++;
+                        $("#gridTable tbody tr:eq(" + rowindex + ")").find('input').removeAttr('disabled');
+                    });
+                    $("#gridTable tbody tr:eq(" + rowindex+1 + ")").find('input').removeAttr('disabled');
+                }
+            });
+        }
+    }
+
+    //确认事件
+    function AcceptClick() {
+        PostFormData();
+    }
+
+    //提交数据
+    function PostFormData() {
+        Loading(true, "正在提交数据...");
+        window.setTimeout(function () {
+            var postData = GetTableJson("#gridTable", "MerchantName");
+            console.log(postData)
+            var urlPara = SetUrlParameter([["platformID", PlatformID], ["platformName", PlatformName]]);
+            AjaxJson(reqUrl + "SavePlatformMerchantsAuthDataList" + urlPara, { dataJson: postData }, function (data) {
+                tipDialog(data.Message, 1, 1);
+                top.frames[tabiframeId()].windowload();
+                closeDialog();
+            });
+        }, 200);
+    }
+
+</script>
+<form id="form1">
+    <div style="margin:15px 0 15px 15px;">
+        <span style="font-weight:700;font-size:16px;">平台：<span id="PlatformName" style="font-size:16px">XXX</span> （<span id="PlatformCode" style="font-size:16px">111</span>）</span>
+    </div>
+    <div id="grid_List" style="border-top:1px solid #808080">
+        <table id="gridTable"></table>
+    </div>
+</form>
+
+
+

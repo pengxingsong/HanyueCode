@@ -1,0 +1,51 @@
+﻿@{
+    ViewBag.Title = "选择打印机";
+    Layout = "~/Views/Shared/_LayoutForm.cshtml";
+}
+
+@section head
+{
+    <script src="~/Content/Scripts/LodopFuncs.js"></script>
+}
+
+<script type="text/javascript">
+    var handoverId = GetQuery('handoverId');
+    var shipTypeId = GetQuery('shipTypeId');
+    $(function () {
+        CreatePrinterList();
+    });
+
+    var LODOP; //声明为全局变量
+    function CreatePrinterList() {
+        LODOP = getLodop();
+        $("#PrinterList").html("");
+        var iPrinterCount = LODOP.GET_PRINTER_COUNT();
+        for (var i = 0; i < iPrinterCount; i++) {
+            $("#PrinterList").append($("<option></option>").val(i).html(LODOP.GET_PRINTER_NAME(i)));
+        };
+    };
+
+    //保存事件
+    function AcceptClick() {
+        if (!CheckDataValid('#form1')) {
+            return false;
+        }
+       
+        var printIndex = $("#PrinterList").val();
+        top.frames[tabiframeId()].PrintHandover(handoverId, printIndex);
+        closeDialog();
+        return true;
+    }
+</script>
+<form id="form1" style="margin: 15px; margin-left: 20px; margin-right: 20px;">
+    <div>
+        <table border="0" class="form-find" style="width: 100%;">
+            <tr>
+                <th style="width: 30%;">选择打印机：</th>
+                <td style="width: 70%;">
+                    <select id="PrinterList" class="txtselect" datacol="yes" err="打印机" checkexpession="NotNull" style="width: 95%"></select>
+                </td>
+            </tr>
+        </table>
+    </div>
+</form>

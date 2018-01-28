@@ -1,0 +1,126 @@
+﻿@{
+    ViewBag.Title = "打印拣货单";
+    Layout = "~/Views/Shared/_LayoutIndex.cshtml";
+}
+
+@section head
+{
+    <script src="~/Content/Scripts/LodopFuncs.js"></script>
+    <object id="LODOP1" classid="clsid:2105C259-1E0C-4534-8141-A753534CB4CA" width="0" height="0">
+        <embed id="LODOP_EM1" TYPE="application/x-print-lodop" width="0" height="0" PLUGINSPAGE="install_lodop32.exe"></embed>
+    </object>
+
+    <style>
+        #grid td {
+            text-align: left;
+            border-bottom: 1px solid #ccc;
+            padding: 6px 2px;
+        }
+
+        #divFileName {
+            width: 310px;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            -o-text-overflow: ellipsis;
+            overflow: hidden;
+        }
+
+        #grid td img {
+            vertical-align: middle;
+            border: 0px solid #fff;
+        }
+    </style>
+
+}
+
+<script>
+    var pickId = GetQuery('pickId');
+    var printIndex = GetQuery('printIndex');
+    var LODOP; //声明为全局变量
+
+    $(function () {
+        Print();
+    });
+
+    //保存事件
+    function AcceptClick() {
+        closeDialog();
+        return true;
+    }
+
+    /* 分批打印
+    function Print() {
+        LODOP = getLodop();
+        var aryOrderNo = orderNos.split(",");
+        var perBatchCount = 5;
+        var batchCount = Math.ceil(aryOrderNo.length / perBatchCount);
+        for (i = 0; i < batchCount; i++) {
+            for (j = 0; j < perBatchCount; j++) {
+                if ((perBatchCount * i + j) + 1 <= aryOrderNo.length) {
+                    PrintOrder(aryOrderNo[perBatchCount * i + j]);
+                }
+                else {
+                    break;
+                }
+            };
+            LODOP.SET_PRINT_MODE("CUSTOM_TASK_NAME", "快递单批量打印" + i);//为每个打印单独设置任务名
+            LODOP.SET_PRINT_MODE("POS_BASEON_PAPER", true);//控制位置基点
+            if (printIndex) {
+                LODOP.SET_PRINTER_INDEX(printIndex);
+            }
+            LODOP.PRINT();
+        };
+    };
+    */
+
+    function Print() {
+        LODOP = getLodop();
+       
+        var template;
+        AjaxJson("/OutStockModule/Pick/GetPrintContent", { pickId: pickId }, function (data) {
+            template = data;
+        });
+        LODOP.SET_PRINT_PAGESIZE(1, 0, 0, "A5"); //A4纸张纵向打印
+        //LODOP.SET_PRINT_STYLE("FontSize", 9);
+        LODOP.ADD_PRINT_HTM("0%", "0%", "100%", "100%", template.TemplateContent);//四个数值分别表示Top,Left,Width,Height
+
+        LODOP.SET_PRINT_MODE("CUSTOM_TASK_NAME", "拣货单批量打印");//为每个打印单独设置任务名
+        LODOP.SET_PRINT_MODE("POS_BASEON_PAPER", true);//控制位置基点
+        LODOP.SET_PRINT_MODE("CATCH_PRINT_STATUS", true);
+
+        if (printIndex) {
+            LODOP.SET_PRINTER_INDEX(printIndex);
+        }
+        if (LODOP.CVERSION) {
+            LODOP.On_Return = function (TaskID, Value) {
+                var html = "";
+                html += '<tr>';
+                html += '<td style="width: 320px;"><div id="divFileName">' + pickId + TaskID + Value + '</div></td>';
+                html += '</tr>';
+                $("#grid tbody").prepend(html);
+
+            };
+            LODOP.PRINT();
+            return;
+        } else {
+            var result = LODOP.PRINT();
+
+            var html = "";
+            html += '<tr>';
+            html += '<td style="width: 320px;"><div id="divFileName">' + pickId + result + '</div></td>';
+            html += '</tr>';
+            $("#grid tbody").prepend(html);
+        }
+    };
+</script>
+
+<div class="btnbartitle">
+    <div style="float: left">
+        打印拣货单
+    </div>
+</div>
+<div style="margin: 1px;">
+    <table id="grid" style="width: 100%; border-collapse: collapse;padding-top: 100px;">
+        <tbody></tbody>
+    </table>
+</div>

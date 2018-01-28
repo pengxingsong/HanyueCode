@@ -1,0 +1,121 @@
+﻿@{
+    ViewBag.Title = "商品导入";
+    Layout = "~/Views/Shared/_LayoutForm.cshtml";
+}
+<script src="../../Content/Scripts/jquery.form.js"></script>
+<script src="../../Content/Scripts/ajaxfileupload.js"></script>
+<script type="text/javascript">
+    $(window).resize(function () {
+        $('.div-body').height($(window).height() - 74);
+    });
+
+    //提交表单
+    function AcceptClick() {
+        closeDialog();
+    }
+
+    function ajaxFileUploadUnitImage() {
+        Loading(true);
+        $.ajaxFileUpload({
+            url: "/ProductModule/Product/SubmitImportProduct",
+            data: {},
+            secureuri: false,
+            fileElementId: 'filePath',
+            dataType: 'text',
+            success: function (data, status) {
+                var result = JSON.parse(data);
+                if (result.status === 'true') {
+                    tipDialog('导入成功', 3, 1);
+                    top.frames[tabiframeId()].windowload();
+                    closeDialog();
+                }
+                else {
+                    var jsonData = result.result;
+                    $.each(jsonData, function (i) {
+                        var setData = jsonData[i];
+                        var rowid = setData.rowid;
+                        var locate = setData.locate;
+                        var reason = setData.reason;
+                        CreateRow(rowid, locate, reason);
+                    });
+                    alertDialog(result.message, 0);
+                }
+            },
+            error: function (data, status, e) {
+                tipDialog('商品导入发生异常', 3, 0);
+            }
+        });
+        Loading(false);
+        return false;
+    }
+
+    function CreateRow(rowid, locate, reason) {
+        var tr = '<tr>';
+        tr += '<td style="width: 30px;">' + rowid + '</td>';
+        tr += '<td style="width: 300px;">' + locate + '</td>';
+        tr += '<td style="width: 300px;">' + reason + '</td>';
+        tr += '</tr>';
+        $(tr).appendTo("#Error_Detail");
+    }
+</script>
+<form id="form1" action="~/ProductModule/Product/SubmitImportProduct" method="POST" enctype="multipart/form-data">
+    <div class="bd" style="border-bottom: none; margin: 1px;margin-bottom: 0px;">
+        <div class="tipstitle_title settingtable bold bd todayInfoPanelTab rightPanelTitle_normal">
+            <div class="tab_list_top" style="position: absolute">
+                <div id="Tabimport" class="tab_list bd actived" onclick="Tabchange('import')">商品导入</div>
+            </div>
+            <div style="float: right; padding-right: 5px;">
+                订单导入模板： <a class="alink" href="~/Resource/ImportTemplate/ImportProduct.xls">下载商品导入模板.xls</a>
+            </div>
+        </div>
+    </div>
+    <div class="border" style="border-top: none; margin-top: 0px; margin-left: 1px; margin-right: 1px;">
+        <div class="btnbarcontetn" style="background: #fff">
+            <div>
+                <div id="ImportHead">
+                    <table border="0" class="form-find" style="height: 40px; width: auto; padding-left: 5px; padding-top: 1px;">
+                        <tr>
+                            <th style="width: 60px;">
+                                导入文件：
+                            </th>
+                            <td colspan="4">
+                                <input type="file" id="filePath" class="txt" style="width: 300px; height: 20px;" name="filePath" />
+                            </td>
+                            <td style="width: 60px;">
+                                <input type="button" class="btnSearch" value="导入" onclick="return ajaxFileUploadUnitImage();" />
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div id="ImportGrid">
+            <table id="Error_Head" class="grid" style="width: 100%">
+                <thead>
+                    <tr>
+                        <td style="width: 50px; text-align: center; border-left: none;">
+                            <div class="table-header">行号</div>
+                        </td>
+                        <td style="width: 300px;">
+                            <div class="table-header">位置</div>
+                        </td>
+                        <td style="width: 300px;">
+                            <div class="table-header">原因</div>
+                        </td>
+                    </tr>
+                </thead>
+                <tbody id="Error_Detail"></tbody>
+            </table>
+        </div>
+    </div>
+    <style>
+        .grid thead td .table-header {
+            padding-left: 2px;
+        }
+
+        .grid tbody td {
+            color: red;
+            text-align: center;
+        }
+    </style>
+</form>

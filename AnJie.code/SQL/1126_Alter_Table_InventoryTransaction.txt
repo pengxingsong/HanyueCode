@@ -1,0 +1,88 @@
+USE [AnJieERP]
+GO
+
+/****** Object:  Table [dbo].[Inventory_Transaction]    Script Date: 2016/11/28 7:45:10 ******/
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+SET ANSI_PADDING ON
+GO
+
+CREATE TABLE [dbo].[Inventory_Transaction](
+	[TransactionId] [varchar](36) NOT NULL,
+	[Type] [int] NOT NULL,
+	[WarehouseId] [varchar](36) NOT NULL,
+	[ProductId] [varchar](36) NOT NULL,
+	[MerchantFrom] [varchar](36) NOT NULL,
+	[MerchantTo] [varchar](36) NOT NULL,
+	[Qty] [int] NOT NULL,
+	[SourceNo] [varchar](36) NOT NULL,
+	[CreateDate] [datetime] NOT NULL,
+	[CreateUserId] [varchar](50) NOT NULL,
+	[CreateUserName] [varchar](50) NOT NULL,
+	[ModifyDate] [datetime] NULL,
+	[ModifyUserId] [varchar](50) NULL,
+	[ModifyUserName] [varchar](50) NULL,
+ CONSTRAINT [PK_Inventory_Transaction] PRIMARY KEY CLUSTERED 
+(
+	[TransactionId] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+) ON [PRIMARY]
+
+GO
+
+SET ANSI_PADDING OFF
+GO
+
+ALTER TABLE [dbo].[Inventory_Transaction] ADD  CONSTRAINT [DF_Inventory_Transaction_QtyOnHand]  DEFAULT ((0)) FOR [Qty]
+GO
+
+ALTER TABLE [dbo].[Inventory_Transaction] ADD  CONSTRAINT [DF_Inventory_Transaction_QtyAllocated]  DEFAULT ((0)) FOR [SourceNo]
+GO
+
+ALTER TABLE [dbo].[Inventory_Transaction] ADD  CONSTRAINT [DF_Inventory_Transaction_CreateDate]  DEFAULT (GETDATE()) FOR [CreateDate]
+GO
+
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'交易种类（枚举：收货、拣货、...）' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'Inventory_Transaction', @level2type=N'COLUMN',@level2name=N'Type'
+GO
+
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'仓库主键' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'Inventory_Transaction', @level2type=N'COLUMN',@level2name=N'WarehouseId'
+GO
+
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'商品主键' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'Inventory_Transaction', @level2type=N'COLUMN',@level2name=N'ProductId'
+GO
+
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'来源商户' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'Inventory_Transaction', @level2type=N'COLUMN',@level2name=N'MerchantFrom'
+GO
+
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'目的商户' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'Inventory_Transaction', @level2type=N'COLUMN',@level2name=N'MerchantTo'
+GO
+
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'交易数量' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'Inventory_Transaction', @level2type=N'COLUMN',@level2name=N'Qty'
+GO
+
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'来源单号' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'Inventory_Transaction', @level2type=N'COLUMN',@level2name=N'SourceNo'
+GO
+
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'创建时间' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'Inventory_Transaction', @level2type=N'COLUMN',@level2name=N'CreateDate'
+GO
+
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'创建用户主键' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'Inventory_Transaction', @level2type=N'COLUMN',@level2name=N'CreateUserId'
+GO
+
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'创建用户' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'Inventory_Transaction', @level2type=N'COLUMN',@level2name=N'CreateUserName'
+GO
+
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'修改时间' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'Inventory_Transaction', @level2type=N'COLUMN',@level2name=N'ModifyDate'
+GO
+
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'修改用户主键' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'Inventory_Transaction', @level2type=N'COLUMN',@level2name=N'ModifyUserId'
+GO
+
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'修改用户' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'Inventory_Transaction', @level2type=N'COLUMN',@level2name=N'ModifyUserName'
+GO
+
+

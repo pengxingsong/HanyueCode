@@ -1,0 +1,153 @@
+﻿@{
+    ViewBag.Title = "三方平台API设置";
+    Layout = "~/Views/Shared/_LayoutIndex.cshtml";
+}
+
+<style type="text/css">
+    .ui-state-highlight, .ui-widget-content .ui-state-highlight, .ui-widget-header .ui-state-highlight {
+        background: none;
+        color: #000000;
+    }
+
+    .ui-widget-content {
+        border-left: none;
+    }
+
+    .ui-jqgrid tr.ui-row-ltr td {
+        padding: 0px;
+        border-bottom: 1px solid #ccc;
+    }
+
+    .ui-jqgrid tr.ui-row-ltr td input[type=text] {
+        padding: 0 3px;
+    }
+
+    .ui-jqgrid .ui-jqgrid-htable th {
+        line-height: 15px;
+    }
+
+    .ui-th-column, .ui-jqgrid .ui-jqgrid-htable th.ui-th-column {
+        background: none;
+    }
+
+
+
+    .editable {
+        height: 22px;
+        background-color: #fff;
+    }
+</style>
+
+<script type="text/javascript">
+
+    var PlatformID = GetQuery('ID');
+    var PlatformCode = GetQuery('Code');
+    var PlatformName = GetQuery('Name');
+
+    var reqUrl = "/BaseModule/ForeignPlatformMgr/";
+
+    $(function () {
+        DarwDataGrid();
+        CreateDefaultDataRow();
+        SetInfo();
+        GetForeignSysApiDataList();
+    });
+
+    function SetInfo() {
+        $("#PlatformName").text(PlatformName);
+        $("#PlatformCode").text(PlatformCode);
+    }
+
+    //绘制数据表
+    function DarwDataGrid() {
+        $("#gridTable").jqGrid({
+            datatype: "local",
+            width: 790,
+            height: 350,
+            autowidth: false,
+            colModel: [
+                { label: '操作', name: "Action", width: 80, sortable: false, align: 'center' },
+                { label: 'API方法名', name: "ApiMethod", width: 150, sortable: false },
+                { label: '标签', name: "Tag", width: 80, sortable: false },
+                { label: '是否要授权', name: "IsAuth", width: 80, sortable: false, align: 'center' },
+                { label: '是否收费', name: "IsCollectFee", width: 50, sortable: false, align: 'center' },
+                { label: '是否禁用', name: "IsDiabled", width: 50, sortable: false, align: 'center' },
+                { label: '描述', name: "Description", width: 180, sortable: false },
+            ],
+            pager: false,
+            rownumbers: true,
+            shrinkToFit: false,
+            gridview: true,
+            footerrow: false,
+        });
+    }
+
+    function CreateDefaultDataRow() {
+        for (var i = 1; i <= 15; i++) {
+            var rowdata = {
+                Action: '<span style="cursor:pointer">删除<span>',
+                ApiMethod: '<input id="ApiMethod➩' + i + '" class="editable" type="text"/><input id="ID➩' + i + '" class="editable" type="hidden"/>',
+                Tag: '<input id="Tag➩' + i + '" class="editable" type="text"/>',
+                IsAuth: '<input id="IsAuth➩' + i + '" class="editable" type="checkbox" checked="checked"  cbvaltype="bool" />',
+                IsCollectFee: '<input id="IsCollectFee➩' + i + '" class="editable" type="checkbox" cbvaltype="bool" />',
+                IsDiabled: '<input id="IsDiabled➩' + i + '" class="editable" type="checkbox" cbvaltype="bool" />',
+                Description: '<input id="Description➩' + i + '" class="editable" type="text"/>',
+            }
+            $('#gridTable').jqGrid('addRowData', i, rowdata);
+        }
+    }
+
+
+    //获取api地址列表信息
+    function GetForeignSysApiDataList() {
+        if (PlatformID) {
+            var rowindex = 1;
+            AjaxJson(reqUrl + "GetForeignSysApiDataList", { platformID: PlatformID }, function (data) {
+                if (data && data.rows) {
+                    var jsonData = data.rows;
+                    $.each(jsonData, function (i) {
+                        var rowData = jsonData[i];
+                        $("#ID➩" + rowindex).val(rowData.ID);
+                        $("#ApiMethod➩" + rowindex).val(rowData.ApiMethod);
+                        $("#Tag➩" + rowindex).val(rowData.Tag);
+                        $("#IsAuth➩" + rowindex).attr("checked", rowData.IsAuth);
+                        $("#IsCollectFee➩" + rowindex).attr("checked", rowData.IsCollectFee);
+                        $("#IsDiabled➩" + rowindex).attr("checked", rowData.IsDiabled);
+                        $("#Description➩" + rowindex).val(rowData.Description);
+                        rowindex++;
+                    });
+                }
+            });
+        }
+    }
+
+    //确认事件
+    function AcceptClick() {
+        PostFormData();
+    }
+
+    function PostFormData() {
+        Loading(true, "正在提交数据...");
+        window.setTimeout(function () {
+            var postData = GetTableJson("#gridTable", "ApiMethod");
+            //console.log(postData)
+            var urlPara = SetUrlParameter([["platformID", PlatformID], ["platformName", PlatformName]]);
+            AjaxJson(reqUrl + "SaveForeignSysApiDataList" + urlPara, { dataJson: postData }, function (data) {
+                tipDialog(data.Message, 1, 1);
+                top.frames[tabiframeId()].windowload();
+                closeDialog();
+            });
+        }, 200);
+    }
+
+</script>
+<form id="form1">
+    <div style="margin:15px 0 15px 15px;">
+        <span style="font-weight:700;font-size:16px;">平台：<span id="PlatformName" style="font-size:16px">XXX</span> （<span id="PlatformCode" style="font-size:16px">111</span>）</span>
+    </div>
+    <div id="grid_List" style="border-top:1px solid #808080">
+        <table id="gridTable"></table>
+    </div>
+</form>
+
+

@@ -1,0 +1,63 @@
+﻿@{
+    ViewBag.Title = "打印预览";
+    Layout = "~/Views/Shared/_LayoutIndex.cshtml";
+}
+
+@section head
+{
+    <script src="~/Content/Scripts/LodopFuncs.js"></script>
+    <object id="LODOP1" classid="clsid:2105C259-1E0C-4534-8141-A753534CB4CA" width="0" height="0">
+        <embed id="LODOP_EM1" TYPE="application/x-print-lodop" width="0" height="0" PLUGINSPAGE="install_lodop32.exe"></embed>
+    </object>
+}
+
+<script>
+    var TemplateId = GetQuery('TemplateId'); //对象主键
+    $(function () {
+        Preview();
+    });
+
+    //保存事件
+    function AcceptClick() {
+
+    }
+
+    var LODOP; //声明为全局变量
+
+    function Preview() {
+
+        var template;
+        AjaxJson("/BaseModule/ShipTypeTemplate/GetTemplate", { TemplateId: TemplateId }, function (data) {
+            template = data;
+        });
+
+        LODOP = getLodop(document.getElementById('LODOP2'), document.getElementById('LODOP_EM2'));
+        eval(template.TemplateContent);
+        LODOP.SET_SHOW_MODE("PREVIEW_IN_BROWSE", 1);
+        LODOP.SET_SHOW_MODE("HIDE_PAPER_BOARD", 1);
+        LODOP.SET_SHOW_MODE("BKIMG_IN_PREVIEW", 1);
+
+        //LODOP.SET_SHOW_MODE("HIDE_PBUTTIN_PREVIEW", 1);//隐藏打印按钮
+        //LODOP.SET_SHOW_MODE("HIDE_SBUTTIN_PREVIEW", 1);//隐藏设置按钮
+        //LODOP.SET_SHOW_MODE("HIDE_PAGE_PERCENT", 1);//隐藏缩放比例下拉选框
+        LODOP.SET_SHOW_MODE("HIDE_QBUTTIN_PREVIEW", 1);//隐藏关闭按钮
+        //LODOP.SET_SHOW_MODE("PREVIEW_NO_MINIMIZE", 1);//禁止预览窗口最小化并始终显示在最前面
+
+        LODOP.PREVIEW();
+    };
+</script>
+
+
+<div class="btnbartitle">
+    <div style="float: left">
+        打印预览
+    </div>
+</div>
+<div style="margin: 1px;">
+    <object id="LODOP2" classid="clsid:2105C259-1E0C-4534-8141-A753534CB4CA" width=100% height="605">
+        <param name="Caption" value="内嵌显示区域">
+        <param name="Border" value="1">
+        <param name="Color" value="#C0C0C0">
+        <embed id="LODOP_EM2" TYPE="application/x-print-lodop" width=810 height=407 PLUGINSPAGE="install_lodop.exe">
+    </object>
+</div>

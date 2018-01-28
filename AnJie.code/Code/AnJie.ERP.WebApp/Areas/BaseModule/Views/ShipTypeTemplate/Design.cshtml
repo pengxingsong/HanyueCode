@@ -1,0 +1,109 @@
+﻿@{
+    ViewBag.Title = "模板设计";
+    Layout = "~/Views/Shared/_LayoutIndex.cshtml";
+}
+
+@section head
+{
+    <script src="~/Content/Scripts/LodopFuncs.js"></script>
+    <object id="LODOP1" classid="clsid:2105C259-1E0C-4534-8141-A753534CB4CA" width="0" height="0">
+        <embed id="LODOP_EM1" TYPE="application/x-print-lodop" width="0" height="0" PLUGINSPAGE="install_lodop32.exe"></embed>
+    </object>
+}
+
+<script>
+    var TemplateId = GetQuery('TemplateId'); //对象主键
+    $(function () {
+        GetTree();
+        DisplayDesign();
+    });
+
+    //系统模块
+    function GetTree() {
+        var itemtree = {
+            showcheck: true,
+            //点击复选框事件
+            oncheckboxclick: function (item, status) {
+                var val = item.id;
+                if (status === 1) {
+                    LODOP.ADD_PRINT_TEXTA(val, 83, 78, 75, 20, item.value);
+                } else {
+                    LODOP.SET_PRINT_STYLEA(val, 'Deleted', true);
+                }
+            },
+            url: "@Url.Content("~/BaseModule/ShipTypeTemplate/PrintItemTree?TemplateId=")" + TemplateId
+        };
+        $("#PrintItemTree").treeview(itemtree);
+    }
+
+    //保存事件
+    function AcceptClick() {
+        Loading(true, "正在提交数据...");
+        window.setTimeout(function () {
+            LODOP = getLodop(document.getElementById('LODOP2'), document.getElementById('LODOP_EM2'));
+            var postData = {
+                TemplateId: TemplateId,
+                TemplateContent: encodeURI(LODOP.GET_VALUE("ProgramCodes", 0))
+            }
+            AjaxJson("/BaseModule/ShipTypeTemplate/SubmitTemplateContent", postData, function (data) {
+                tipDialog(data.Message, 3, data.Code);
+                top.frames[tabiframeId()].windowload();
+                closeDialog();
+            });
+        }, 200);
+    }
+
+    var LODOP; //声明为全局变量
+
+    function DisplayDesign() {
+
+        var template;
+        AjaxJson("/BaseModule/ShipTypeTemplate/GetTemplate", { TemplateId: TemplateId }, function (data) {
+            template = data;
+        });
+        
+        LODOP = getLodop(document.getElementById('LODOP2'), document.getElementById('LODOP_EM2'));
+      
+        eval(template.TemplateContent);
+
+        LODOP.SET_SHOW_MODE("DESIGN_IN_BROWSE", 1);
+        LODOP.SET_SHOW_MODE("SETUP_ENABLESS", "11111111000000");//隐藏关闭(叉)按钮
+        LODOP.SET_SHOW_MODE("HIDE_GROUND_LOCK", true);//隐藏纸钉按钮
+
+        LODOP.SET_SHOW_MODE("HIDE_ABUTTIN_SETUP", 1);//隐藏应用按钮
+        LODOP.SET_SHOW_MODE("HIDE_RBUTTIN_SETUP", 1);//隐藏复原按钮
+        //LODOP.SET_SHOW_MODE("HIDE_VBUTTIN_SETUP", 1);//隐藏预览按钮
+        LODOP.SET_SHOW_MODE("HIDE_PBUTTIN_SETUP", 1);//隐藏打印按钮		
+        LODOP.SET_SHOW_MODE("HIDE_DISBUTTIN_SETUP", 1);//隐藏那些无效按钮
+
+        LODOP.PRINT_DESIGN();
+    };    
+</script>
+
+<div id="layout" class="layout" onselectstart="return false;" style="-moz-user-select: none;">
+    <!--左边-->
+    <div class="layoutPanel layout-west">
+        <div class="btnbartitle">
+            <div>
+                面单打印项
+            </div>
+        </div>
+        <div class="ScrollBar" id="PrintItemTree"></div>
+    </div>
+    <!--中间-->
+    <div class="layoutPanel layout-center">
+        <div class="btnbartitle">
+            <div style="float: left">
+                系统视图 <span class="ModuleName"></span>
+            </div>
+        </div>
+        <div style="margin: 1px;">
+            <object id="LODOP2" classid="clsid:2105C259-1E0C-4534-8141-A753534CB4CA" width=100% height="605">
+                <param name="Caption" value="内嵌显示区域">
+                <param name="Border" value="1">
+                <param name="Color" value="#C0C0C0">
+                <embed id="LODOP_EM2" TYPE="application/x-print-lodop" width=810 height=407 PLUGINSPAGE="install_lodop.exe">
+            </object>
+        </div>
+    </div>
+</div>

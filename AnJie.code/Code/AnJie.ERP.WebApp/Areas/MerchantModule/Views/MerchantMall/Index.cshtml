@@ -1,0 +1,120 @@
+﻿@{
+    ViewBag.Title = "店铺管理";
+    Layout = "~/Views/Shared/_LayoutIndex.cshtml";
+}
+<script type="text/javascript">
+    $(document).ready(function () {
+        GetTree();
+        GetGrid("");
+    });
+    var MerchantId, MerchantName = "";
+
+    //加载左边树
+    function GetTree() {
+        var itemtree = {
+            onnodeclick: function (item) {
+                MerchantId = item.id;            //ID
+                MerchantName = item.text;        //名称
+                $("#CenterTitle").html(" - " + MerchantName);
+                $("#gridTable").jqGrid('setGridParam', { url: "@Url.Content("~/MerchantModule/MerchantMall/GridListJson")?MerchantId=" + MerchantId }).trigger('reloadGrid');
+            },
+            url: "@Url.Content("~/MerchantModule/Merchant/TreeJson")"
+        };
+        $("#ItemsTree").treeview(itemtree);
+    }
+
+    //加载表格
+    function GetGrid(MerchantId) {
+        $("#gridTable").jqGrid({
+            url: "@Url.Content("~/MerchantModule/MerchantMall/GridListJson")",
+            datatype: "json",
+            height: $(window).height() - 105,
+            autowidth: true,
+            colModel: [
+                { label: '主键', name: 'mallid', index: "mallid", hidden: true },
+                { label: '店铺编码', name: 'code', index: "code", width: 80 },
+                { label: '店铺名称', name: 'mallname', index: "mallname", width: 100 },
+                { label: '所属商户Id', name: 'merchantid', index: 'merchantid', hidden: true },
+                { label: '所属商户', name: 'merchantname', index: "merchantname", width: 120 },
+                {
+                    label: '有效', name: 'enabled', index: 'enabled', width: 45, align: 'center',
+                    formatter: function (cellvalue, options, rowObject) {
+                        if (cellvalue == '1') return "<img src='../../Content/Images/checkokmark.gif'/>";
+                        if (cellvalue == '0') return "<img src='../../Content/Images/checknomark.gif'/>";
+                    }
+                },
+                { label: '说明', name: 'remark', index: "remark", width: 300 }
+            ],
+            pager: false,
+            rowNum: 1000,
+            sortname: 'SortCode',
+            sortorder: 'asc',
+            rownumbers: true,
+            shrinkToFit: false,
+            gridview: true
+        });
+        columnModelData("#gridTable");
+    }
+
+    //新增
+    function btn_add() {
+        if (!!MerchantId) {
+            var url = "/MerchantModule/MerchantMall/Form?MerchantId=" + MerchantId;
+            openDialog(url, "Form", "新增商户店铺信息", 650, 260, function (iframe) {
+                top.frames[iframe].AcceptClick()
+            });
+        } else {
+            alertDialog("请选择左边商户", 0);
+        }
+    }
+
+    //编辑
+    function btn_edit() {
+        var KeyValue = GetJqGridRowValue("#gridTable", "mallid");
+        if (IsChecked(KeyValue)) {
+            var url = "/MerchantModule/MerchantMall/Form?KeyValue=" + KeyValue;
+            openDialog(url, "Form", "编辑商户店铺信息", 650, 260, function (iframe) {
+                top.frames[iframe].AcceptClick();
+            });
+        }
+    }
+
+    //删除
+    function btn_delete() {
+        var KeyValue = GetJqGridRowValue("#gridTable", "mallid");
+        if (IsSelectData(KeyValue)) {
+            var delparm = 'KeyValue=' + KeyValue;
+            delConfig('/MerchantModule/MerchantMall/DeleteMall', delparm, KeyValue.split(",").length);
+        }
+    }
+
+    //刷新
+    function windowload() {
+        $("#gridTable").trigger("reloadGrid"); //重新载入  
+    }
+</script>
+<div id="layout" class="layout">
+    <!--左边-->
+    <div class="layoutPanel layout-west">
+        <div class="btnbartitle">
+            <div>
+                商户列表
+            </div>
+        </div>
+        <div class="ScrollBar" id="ItemsTree"></div>
+    </div>
+    <!--中间-->
+    <div class="layoutPanel layout-center">
+        <div class="btnbartitle">
+            <div>
+                商户店铺列表<span id="CenterTitle"></span>
+            </div>
+        </div>
+        <div class="tools_bar" style="border-top: none; margin-bottom: 0px;">
+            <div class="PartialButton">
+                @Html.Partial("_PartialButton")
+            </div>
+        </div>
+        <table id="gridTable"></table>
+    </div>
+</div>

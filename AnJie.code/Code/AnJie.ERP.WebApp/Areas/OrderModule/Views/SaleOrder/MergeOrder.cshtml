@@ -1,0 +1,327 @@
+﻿@{
+    ViewBag.Title = "订单管理 》合并订单";
+    Layout = "~/Views/Shared/_LayoutIndex.cshtml";
+}
+<script type="text/javascript">
+    var KeyValue = GetQuery('KeyValue');
+
+    //初始化绑定下拉框
+    function BindMerchant() {
+        $("#MerchantId").html("");
+        $("#MerchantId").append("<option value=''>--请选择--</option>");
+        AjaxJson("/MerchantModule/Merchant/ListJson", {}, function (dataJson) {
+            $.each(dataJson, function (i) {
+                $("#MerchantId").append($("<option></option>").val(dataJson[i].MerchantId).html(dataJson[i].FullName));
+            });
+        });
+
+        //所在市
+        $("#MerchantId").change(function () {
+            BindMerchantMall();
+        });
+    }
+
+    //所在仓库下拉框
+    function BindWarehouse() {
+        $("#WarehouseId").html("");
+        $("#WarehouseId").append("<option value=''>--请选择--</option>");
+        AjaxJson("/BaseModule/Warehouse/GetList",
+            {},
+            function (dataJson) {
+                $.each(dataJson,
+                    function (i) {
+                        $("#WarehouseId")
+                            .append($("<option></option>")
+                                .val(dataJson[i].WarehouseId)
+                                .html(dataJson[i].WarehouseName));
+                    });
+            });
+    }
+
+    //绑定商户店铺
+    function BindMerchantMall() {
+        $("#MerchantMallId").html("");
+        $("#MerchantMallId").append("<option value=''>--请选择--</option>");
+        AjaxJson("/MerchantModule/MerchantMall/ListJson",
+            { MerchantId: $("#MerchantId").val() },
+            function (dataJson) {
+                $.each(dataJson,
+                    function (i) {
+                        $("#MerchantMallId")
+                            .append($("<option></option>").val(dataJson[i].mallid).html(dataJson[i].mallname));
+                    });
+            });
+    }
+
+    //物流方式
+    function BindShipType() {
+        $("#ShipTypeId").html("");
+        $("#ShipTypeId").append("<option value=''>--请选择--</option>");
+        AjaxJson("/BaseModule/ShipType/ListJson", {}, function (dataJson) {
+            $.each(dataJson, function (i) {
+                $("#ShipTypeId").append($("<option></option>").val(dataJson[i].ShipTypeId).html(dataJson[i].ShipTypeName));
+            });
+        });
+    }
+
+    //绑定表格
+    function GetGrid() {
+        $("#gridTable")
+            .jqGrid({
+                url: "@Url.Content("~/OrderModule/SaleOrder/SetMergeOrderItemList")",
+                datatype: "json",
+                postData: { KeyValue: KeyValue },
+                mtype: 'POST',
+                height: $(window).height() - 400,
+                autowidth: true,
+                colModel: [
+                    { label: '主键', name: 'ItemId', width: 80, align: 'left', hidden: true },
+                    { label: '商品主键', name: 'ProductId', hidden: true },
+                    { label: '订单编号', name: "OrderNo", width: 100, sortable: false },
+                    { label: '商品编码', name: "Code", width: 100, sortable: false },
+                    { label: '商品名称', name: "ProductName", width: 400, sortable: false },
+                    { label: '规格型号', name: "Specification", width: 80, sortable: false, align: 'center' },
+                    { label: '单位', name: "BaseUnit", width: 70, sortable: false, align: 'center' },
+                    { label: '数量', name: 'Qty', width: 70, sortable: false, align: 'center' },
+                    { label: '说明', name: 'Description', width: 384, sortable: false }
+                ],
+                pager: false,
+                rownumbers: true,
+                shrinkToFit: false,
+                gridview: true,
+                footerrow: true,
+                gridComplete: function () {
+                    //统计合计
+                    var totalQty = 0;
+                    $("#gridTable tbody tr")
+                        .each(function (i) {
+                            var qty = $(this).find('td:eq(8)').text();
+                            if (qty !== "" && qty != undefined) {
+                                totalQty += Number(qty);
+                            }
+                        });
+                    $(this).footerData("set",
+                        {
+                            "Code": "合计",
+                            "Qty": "<span id='TotalQty'>" + totalQty + "</span>"
+                        });
+                }
+            });
+    }
+
+    //保存事件
+    function SubmitOrderForm() {
+        if (!!KeyValue) {
+            if (!CheckDataValid('#form1')) {
+                return false;
+            }
+
+            confirmDialog('提示',
+                                '注：您确认要保存此操作吗？',
+                                function (r) {
+                                    if (r) {
+                                        Loading(true, "正在提交数据...");
+                                        window.setTimeout(function () {
+                                            var postData = GetWebControls("#tb_OrderFrom");
+                                            postData["OrderIds"] = KeyValue;
+                                            postData["MergeOrderNo"] = $("#MergeOrderNo").val();
+                                            AjaxJson("/OrderModule/SaleOrder/SubmitMergeOrder",
+                                                postData,
+                                                function (data) {
+                                                    tipDialog(data.Message, 3, data.Code);
+                                                    top.frames[tabiframeId()].windowload();
+                                                    closeDialog();
+                                                });
+                                        },
+                                            200);
+                                    }
+                                });
+
+            return true;
+        }
+        else {
+            alertDialog("拆分失败，无效订单号", -1);
+        }
+    }
+
+
+    $(function () {
+        BindMerchant();
+        BindWarehouse();
+        BindShipType();
+        if (!!KeyValue) {
+            //主表信息
+            AjaxJson("/OrderModule/SaleOrder/SetMergeOrder",
+                { KeyValue: KeyValue },
+                function (data) {
+                    SetWebControls(data);
+                    BindMerchantMall();
+                    $("#MerchantMallId").val(data.MerchantMallId);
+
+                    $("#CreateUserName").val("@AnJie.ERP.Utilities.ManageProvider.Provider.Current().UserName");
+                    $("#ModifyUserName").val("@AnJie.ERP.Utilities.ManageProvider.Provider.Current().UserName");
+                    $("#CreateDate").val("@DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")");
+                    $("#ModifyDate").val("@DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")");
+                });
+            GetGrid();
+        }
+        else {
+            alertDialog("无效订单号", -1);
+            closeDialog();
+        }
+    });
+</script>
+
+<form id="form1">
+    <div class="tools_bar leftline rightline" style="margin-bottom: 0px; margin: 1px;">
+        <div class="PartialButton">
+            <a id="btn-replace" class="tools_btn" title="刷新当前(Ctrl+Q)" onclick="Replace()"><span><b style='background: url(@Url.Content("~/Content/Images/Icon16/arrow_refresh.png")) no-repeat 50% 4px;'>刷新</b></span></a>
+            <div class="tools_separator"></div>
+            <a id="button_Commit_Save" title="合并订单" onclick="SubmitOrderForm()" class="tools_btn"><span><b style="background: url(@Url.Content("~/Content/Images/Icon16/arrow_join.png")) 50% 4px no-repeat;">合并订单</b></span></a>
+            <div class="tools_separator"></div>
+        </div>
+    </div>
+    <div class="QueryArea">
+        <table id="tb_OrderFrom" class="form-bill" style="width: 100%">
+            <tr>
+                <td align="center" colspan="8">
+                    <div style="font-family: 'Microsoft YaHei'; font-size: x-large; height: 40px; line-height: 40px;">
+                        销售单
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <th>
+                    发货仓库
+                </th>
+                <td>
+                    <select disabled="disabled" id="WarehouseId" class="txtselect" datacol="yes" err="发货仓库" checkexpession="NotNull" style="width: 95%"></select>
+                </td>
+                <th>
+                    制单日期[*]：
+                </th>
+                <td>
+                    <input readonly id="CreateDate" type="text" class="txt" datacol="yes" err="制单日期" checkexpession="NotNull" style="width: 95%" />
+                </td>
+                <th>
+                    <font color="red" style="font-weight:bold;">合并订单编号[*]：</font>
+                </th>
+                <td>
+                    <input readonly id="MergeOrderNo" type="text" class="txt" datacol="yes" err="拆分订单编号" checkexpession="NotNull" value="@ViewBag.MergeOrderNo" style="width: 95%" />
+                </td>
+            </tr>
+            <tr>
+                <th>
+                    原订单编号[*]：
+                </th>
+                <td colspan="3">
+                    <input readonly id="OrderNo" type="text" class="txt" datacol="yes" err="原订单编号" checkexpession="NotNull" style="width: 95%" />
+                </td>
+                <th>
+                    外部单号[*]：
+                </th>
+                <td colspan="3">
+                    <input readonly id="SourceOrderNo" type="text" class="txt" datacol="yes" err="外部单号" checkexpession="NotNull" style="width: 95%" />
+                </td>
+            </tr>
+            <tr>
+                <th>所属商户：</th>
+                <td>
+                    <select disabled="disabled" id="MerchantId" class="txtselect" datacol="yes" err="所属商户" checkexpession="NotNull" style="width: 95%"></select>
+                </td>
+                <th>销售网店：</th>
+                <td>
+                    <select disabled="disabled" id="MerchantMallId" class="txtselect" datacol="yes" err="销售网店" checkexpession="NotNull" style="width: 95%"></select>
+                </td>
+                <th style="width: 6%;">物流方式：</th>
+                <td style="width: 14%;">
+                    <select disabled="disabled" id="ShipTypeId" class="txt select" datacol="yes" style="width: 99%"></select>
+                </td>
+                <th>
+                </th>
+                <td></td>
+            </tr>
+            <tr>
+                <th>联系人：</th>
+                <td>
+                    <input readonly id="ReceiveContact" type="text" class="txt" datacol="yes" style="width: 95%" />
+                </td>
+                <th>联系电话：</th>
+                <td>
+                    <input readonly id="ReceiveCellPhone" type="text" class="txt" datacol="yes" style="width: 95%" />
+                </td>
+                <th>固定电话：</th>
+                <td>
+                    <input readonly id="ReceivePhone" type="text" class="txt" datacol="yes" style="width: 95%" />
+                </td>
+                <th>邮编：</th>
+                <td>
+                    <input readonly id="ReceiveZip" type="text" class="txt" datacol="yes" style="width: 95%" />
+                </td>
+            </tr>
+            <tr>
+                <th>所在省：</th>
+                <td>
+                    <input readonly id="Province" type="text" class="txt" datacol="yes" err="所在省" style="width: 95%" />
+                </td>
+                <th>所在市：</th>
+                <td>
+                    <input readonly id="City" type="text" class="txt" datacol="yes" err="所在市" style="width: 95%" />
+                </td>
+                <th>所在县/区：</th>
+                <td>
+                    <input readonly id="County" type="text" class="txt" datacol="yes" err="所在县/区" style="width: 95%" />
+                </td>
+                <th></th>
+                <td></td>
+            </tr>
+            <tr>
+                <th>详细地址：</th>
+                <td colspan="7">
+                    <input readonly id="ReceiveAddress" type="text" class="txt" datacol="yes" err="详细地址" style="width: 95%" />
+                </td>
+            </tr>
+            <tr>
+                <th>卖家留言：</th>
+                <td colspan="7">
+                    <input readonly id="SellerNote" type="text" class="txt" datacol="yes" err="卖家留言" style="width: 95%" />
+                </td>
+            </tr>
+            <tr>
+                <th>买家留言：</th>
+                <td colspan="7">
+                    <input readonly id="BuyerNote" type="text" class="txt" datacol="yes" err="买家留言" style="width: 95%" />
+                </td>
+            </tr>
+            <tr>
+                <th>
+                    备注：
+                </th>
+                <td colspan="7">
+                    <input id="Remark" type="text" class="txt" style="width: 95%" />
+                </td>
+            </tr>
+            <tr>
+                <th>
+                    制单人[<font face="宋体">*</font>]：
+                </th>
+                <td>
+                    <input readonly id="CreateUserName" type="text" class="txt" style="width: 95%" />
+                </td>
+                <th>
+                    最后修改人：
+                </th>
+                <td>
+                    <input readonly id="ModifyUserName" type="text" class="txt" style="width: 95%" />
+                </td>
+                <th></th>
+                <td></td>
+                <th></th>
+                <td></td>
+            </tr>
+        </table>
+    </div>
+    <div id="grid_List" class="topline">
+        <table id="gridTable"></table>
+    </div>
+</form>
